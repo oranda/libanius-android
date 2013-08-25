@@ -1,0 +1,71 @@
+/*
+ * Copyright 2012-2013 James McCabe <james@oranda.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain
+ * a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.oranda.libanius.io
+
+import com.oranda.libanius.model.wordmapping.QuizGroupHeader
+import android.content.Context
+import java.io._
+import com.oranda.libanius.dependencies.{AppDependencies, Conf}
+
+case class AndroidIO(ctx: Context) extends PlatformIO {
+
+  def readFile(fileName: String): Option[String] =
+    if (ctx.getFileStreamPath(fileName).exists)
+      Some(readInputStream(fileToInputStream(fileName)))
+    else {
+      l.log("ERROR: File not found: " + fileName)
+      None
+    }
+
+  def resID(resName: String) = ctx.getResources.getIdentifier(resName, "raw", ctx.getPackageName)
+
+  def resourceToInputStream(resName: String) =
+    ctx.getResources.openRawResource(resID(resName))
+
+  def fileToInputStream(fileName: String) = ctx.openFileInput(fileName)
+
+  def readResource(resName: String): Option[String] =
+    Some(readInputStream(resourceToInputStream(resName)))
+
+  def save(fileName: String, fileNameBackup: String, strToSave: String) {
+    val file = new File(fileName)
+    val file2 = new File(fileNameBackup)
+    file2.delete()
+	  //l.log("Renaming " + fileName + " to " + fileNameBackup)
+    file.renameTo(file2) // Doesn't seem to work, but not crucial
+    writeToFile(AppDependencies.conf.fileQuiz, strToSave)
+  }
+
+  def writeToFile(fileName: String, data: String) = {
+    val fOut: FileOutputStream = ctx.openFileOutput(fileName, Context.MODE_PRIVATE)
+    fOut.write(data.getBytes())  
+    fOut.close()
+  }
+
+  override def readWmgMetadataFromFile(wmgFileName: String): Option[QuizGroupHeader] =
+    readWmgMetadata(fileToInputStream(wmgFileName))
+
+  override def readWmgMetadataFromResource(wmgResName: String): Option[QuizGroupHeader] =
+    readWmgMetadata(resourceToInputStream(wmgResName))
+
+  override def findWmgFileNamesFromFilesDir =
+    ctx.getFilesDir.listFiles.filter(_.getName.endsWith(".wmg")).map(_.getName)
+
+  override def findWmgFileNamesFromResources =
+    classOf[android.R.raw].getFields.map(_.getName).filter(_.startsWith("wmg"))
+
+}
