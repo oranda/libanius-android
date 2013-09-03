@@ -44,16 +44,16 @@
       android:layout_marginBottom="5dp"
       >
       <Button
-        android:id="@+id/gotoDictionaryButton"
+        android:id="@+id/gotoOptionsButton"
         style="?android:attr/buttonStyleSmall"
 	    android:layout_width="0dp"
 	    android:layout_weight="15"
         android:layout_height="wrap_content"
         android:text="@string/opt"
         android:textSize="12sp"
-	    android:textColor="#AAAA00"	    
+	    android:textColor="#007700"
         android:textStyle="bold"
-        android:onClick="gotoDictionary" 
+        android:onClick="gotoOptions"
       />
       <TextView
         android:id="@+id/question"

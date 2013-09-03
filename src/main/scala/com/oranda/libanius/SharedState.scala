@@ -17,24 +17,25 @@
 package com.oranda.libanius
 
 import com.oranda.libanius.model.wordmapping._
+import com.oranda.libanius.model.{QuizGroup, Quiz}
 
 object SharedState {
 
   // The quiz needs to be global because it is shared between the OptionsScreen and the QuizScreen.
-  var quiz: QuizOfWordMappings = QuizOfWordMappings()
+  var quiz: Quiz = Quiz()
 
-  def numActiveQuizGroups = quiz.wordMappingGroups.size
+  def numActiveQuizGroups = quiz.quizGroups.size
 
   // A cache of quiz groups. It needs to be global because it must be updated when the quiz is.
   // TODO: use function-local memoization instead!
-  var loadedQuizGroups = List[WordMappingGroup]()
+  var loadedQuizGroups = List[QuizGroup]()
 
-  protected[libanius] def updateQuiz(newQuiz: QuizOfWordMappings) {
+  protected[libanius] def updateQuiz(newQuiz: Quiz) {
     SharedState.quiz = newQuiz
-    newQuiz.wordMappingGroups.foreach(updateLoadedQuizGroups(_))
+    newQuiz.quizGroups.foreach(updateLoadedQuizGroups(_))
   }
 
-  protected[libanius] def updateLoadedQuizGroups(quizGroup: WordMappingGroup) {
+  protected[libanius] def updateLoadedQuizGroups(quizGroup: QuizGroup) {
     loadedQuizGroups = loadedQuizGroups.filter(_.header != quizGroup.header)
     loadedQuizGroups :+= quizGroup
   }

@@ -20,7 +20,6 @@ import java.lang.Runnable
 import scala.concurrent.{ future, ExecutionContext }
 import ExecutionContext.Implicits.global
 
-import com.oranda.libanius.model.wordmapping.{QuizGroupHeader, QuizItemViewWithOptions}
 import com.oranda.libanius.util.Util
 import android.app.Activity
 import android.content.Intent
@@ -32,6 +31,8 @@ import android.widget.Button
 import android.widget.TextView
 import com.oranda.libanius.io.AndroidIO
 import com.oranda.libanius.dependencies.{DataStore, AppDependencies}
+import com.oranda.libanius.model.quizitem.{QuizItem, QuizItemViewWithChoices}
+import com.oranda.libanius.model.QuizGroupHeader
 
 class QuizScreen extends Activity with TypedActivity with Timestamps {
 
@@ -48,15 +49,15 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
   private[this] lazy val prevAnswerOption2Label: TextView = findView(TR.prevAnswerOption2)
   private[this] lazy val prevAnswerOption3Label: TextView = findView(TR.prevAnswerOption3)
 
-  private lazy val answerOptionButtons = List(answerOption1Button, answerOption2Button,
+  private[this] lazy val answerOptionButtons = List(answerOption1Button, answerOption2Button,
       answerOption3Button)
-  private lazy val prevOptionLabels = List(prevAnswerOption1Label, prevAnswerOption2Label,
+  private[this] lazy val prevOptionLabels = List(prevAnswerOption1Label, prevAnswerOption2Label,
       prevAnswerOption3Label)
 
   private[this] lazy val speedLabel: TextView = findView(TR.speed)
   private[this] lazy val statusLabel: TextView = findView(TR.status)
   
-  private[this] var currentQuizItem: QuizItemViewWithOptions = _
+  private[this] var currentQuizItem: QuizItemViewWithChoices = _
 
   private[this] def l = AppDependencies.logger
 
@@ -67,7 +68,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
     l.log("onCreate")
     setContentView(R.layout.quizscreen)
 
-    l.log("quiz groups are " + quiz.wordMappingGroups.map(_.header).mkString)
+    l.log("quiz groups are " + quiz.quizGroups.map(_.header).mkString)
     testUserWithQuizItem()
   }
 
@@ -78,14 +79,13 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
   }
 
   def testUserWithQuizItem() {
-    Util.stopwatch(quiz.findQuizItem, "find quiz items") match {
-      case (Some((quizItem, wmg)), failedWmgs) =>
+    Util.stopwatch(quiz.findPresentableQuizItem, "find quiz items") match {
+      case (Some((quizItem, quizGroup))) =>
         currentQuizItem = quizItem
         showNextQuizItem()
-        SharedState.updateQuiz(
-            quiz.addWordMappingGroup(wmg.updatedPromptNumber).updateRangeForFailedWmgs(failedWmgs))
-        quiz.wordMappingGroups.foreach(wmg => l.log(wmg.keyType + " prompt number is " +
-            wmg.currentPromptNumber + ", range is " + wmg.currentSearchRange.start))
+        SharedState.updateQuiz(quiz.addQuizGroup(quizGroup.updatedPromptNumber))
+        quiz.quizGroups.foreach(qg => l.log(quizGroup.promptType + " prompt number is " +
+            qg.currentPromptNumber))
       case _ =>
         printStatus("No more questions found! Done!")
     }
@@ -100,14 +100,14 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
   def showNextQuizItem() {
     answerOptionButtons.foreach(_.setBackgroundColor(Color.LTGRAY))
 
-    questionLabel.setText(currentQuizItem.keyWord)
-    var questionNotesText = "What is the " + currentQuizItem.valueType + "?"
+    questionLabel.setText(currentQuizItem.prompt.toString)
+    var questionNotesText = "What is the " + currentQuizItem.responseType + "?"
     if (currentQuizItem.numCorrectAnswersInARow > 0)
       questionNotesText += " (correctly answered " +
           currentQuizItem.numCorrectAnswersInARow + " times)"
     questionNotesLabel.setText(questionNotesText)
         
-    val optionsIter = currentQuizItem.allOptions.iterator
+    val optionsIter = currentQuizItem.allChoices.iterator
     answerOptionButtons.foreach(_.setText(optionsIter.next))
   }
   
@@ -116,18 +116,18 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
   def answerOption3Clicked(v: View) { processUserAnswer(answerOption3Button) }
   
   def removeCurrentWord(v: View) {
-    val (newQuiz, wasRemoved) = quiz.removeWordMappingValue(currentQuizItem.keyWord, 
-        currentQuizItem.wordMappingValue, currentQuizItem.quizGroupHeader)
+    val (newQuiz, wasRemoved) = quiz.removeQuizItem(currentQuizItem.quizItem,
+        currentQuizItem.quizGroupHeader)
         
     SharedState.updateQuiz(newQuiz)
     
-    if (wasRemoved) printStatus("Deleted word " + currentQuizItem.keyWord)
+    if (wasRemoved) printStatus("Deleted word " + currentQuizItem.prompt)
     testUserWithQuizItemAgain()    
   }
   
-  def gotoDictionary(v: View) {
-    val dictScreen = new Intent(getApplicationContext(), classOf[OptionsScreen])
-    startActivity(dictScreen)
+  def gotoOptions(v: View) {
+    val optionsScreen = new Intent(getApplicationContext(), classOf[OptionsScreen])
+    startActivity(optionsScreen)
   }
 
   private def updateUI(correctAnswer: String, clickedButton: Button) {
@@ -145,27 +145,24 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
   private def setPrevQuestionText() {
     var prevQuestionText = "PREV: " + questionLabel.getText
     val maxAnswers = AppDependencies.conf.numCorrectAnswersRequired
-    if (currentQuizItem.wordMappingValue.numCorrectAnswersInARow == maxAnswers)
+    if (currentQuizItem.numCorrectAnswersInARow == maxAnswers)
       prevQuestionText += " (correct " + maxAnswers + " times -- COMPLETE)"
     prevQuestionLabel.setText(prevQuestionText)
   }
 
   private def populatePrevOptions() {
 
-    l.log("allOptions for currentQuizItem: " + currentQuizItem.allOptions)
+    l.log("allChoices for currentQuizItem: " + currentQuizItem.allChoices)
 
     val reverseGroupHeader = currentQuizItem.quizGroupHeader.reverse
-    val isReverseLookupPossible = quiz.findWordMappingGroup(reverseGroupHeader).isDefined
+    val isReverseLookupPossible = quiz.findQuizGroup(reverseGroupHeader).isDefined
 
     if (isReverseLookupPossible) {
-      val labelsToOptions = prevOptionLabels zip currentQuizItem.allOptions
+      val labelsToOptions = prevOptionLabels zip currentQuizItem.allChoices
       labelsToOptions.foreach {
-        case (label, option) => setPrevOptionsText(label, option, reverseGroupHeader)
+        case (label, option) => setPrevOptionsText(label, option,
+          currentQuizItem.quizGroupHeader, reverseGroupHeader)
       }
-    } else {
-      prevAnswerOption1Label.setTextColor(Color.GREEN)
-      prevAnswerOption1Label.setText(currentQuizItem.keyWord + " = " +
-          currentQuizItem.wmvs.strings.mkString(", "))
     }
   }
 
@@ -179,13 +176,15 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
     }
   }
 
-  def setPrevOptionsText(prevOptionLabel: TextView, keyWord: String,
-      quizGroupHeader: QuizGroupHeader) {
+  def setPrevOptionsText(prevOptionLabel: TextView, responseOption: String,
+      qgHeader: QuizGroupHeader, qgReverseHeader: QuizGroupHeader) {
 
-    l.log("quiz wordMappingGroups: " + quiz.wordMappingGroups.map(_.header))
-    // The arguments for quiz.findValuesFor() have keyType and valueType reversed
-    val values = quiz.findValuesFor(keyWord, quizGroupHeader).mkString(", ")
-    prevOptionLabel.setText(keyWord + " = " + values)
+    l.log("setPrevOptionsText: " + responseOption + ")")
+    val values = quiz.findResponsesFor(responseOption, qgReverseHeader) match {
+      case Nil => quiz.findPromptsFor(responseOption, qgHeader)
+      case values => values
+    }
+    prevOptionLabel.setText(responseOption + " = " + values.mkString(", "))
   }
   
   def setColorOnAnswer(answerOptionButton: Button, 
@@ -210,12 +209,14 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
 
   def processUserAnswer(clickedButton: Button) {
     val userAnswerTxt = clickedButton.getText.toString
-    val correctAnswer = currentQuizItem.wordMappingValue.value
-    val isCorrect = userAnswerTxt == correctAnswer
+    val correctAnswer = currentQuizItem.quizItem.response
+    val isCorrect = correctAnswer.matches(userAnswerTxt)
+    l.log("isCorrect? " + isCorrect + " userAnswerTxt: " + userAnswerTxt +
+      "; correctAnswer: " + correctAnswer)
     updateTimestamps(isCorrect)
     Util.stopwatch(SharedState.updateQuiz(quiz.updateWithUserAnswer(isCorrect, currentQuizItem)),
         "updateWithUserAnswer")
-    updateUI(correctAnswer, clickedButton)
+    updateUI(correctAnswer.text, clickedButton)
 
     val delayMillis = if (isCorrect) 10 else 300
     val handler = new Handler
@@ -235,7 +236,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
     future {
       (Util.stopwatch(quiz.scoreSoFar, "scoreSoFar") * 100).toString
     } map { scoreSoFar: String =>
-        runOnUiThread(new Runnable { override def run() { formatAndPrintScore(scoreSoFar) } })
+      runOnUiThread(new Runnable { override def run() { formatAndPrintScore(scoreSoFar) } })
     }
   }
   

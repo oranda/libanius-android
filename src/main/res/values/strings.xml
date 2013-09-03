@@ -3,6 +3,6 @@
     <string name="select_quiz_groups">Select quiz groups:</string>
     <string name="go_to_quiz">Go to Quiz</string>
     <string name="search_dictionary">Search selected as dictionary:</string>
-    <string name="opt">OPT</string>
+    <string name="opt">&lt;--</string>
     <string name="del">DEL</string>
 </resources>

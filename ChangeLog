@@ -1,3 +1,8 @@
+== 0.87 September 3 2013
+
+  * Little updates to ensure it works with the restructured data model in libanius 0.87.
+
+
 == 0.8 August 25 2013
 
   * Split Libanius into two projects:

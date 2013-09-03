@@ -35,10 +35,13 @@ import android.view.View.OnClickListener
 import scala.util.Try
 import com.oranda.libanius.io.AndroidIO
 import com.oranda.libanius.dependencies.{LoggerAndroid, Conf, AppDependencies, DataStore}
+import com.oranda.libanius.model.{Quiz, QuizGroup, SearchResult, QuizGroupHeader}
 
 class OptionsScreen extends Activity with TypedActivity {
 
   private[this] lazy val dataStore = DataStore(AndroidIO(ctx = this))
+
+  private[this] lazy val l = AppDependencies.logger
 
   private[this] lazy val quizGroupLayout: LinearLayout = findView(TR.checkboxesLayout)
 
@@ -48,10 +51,11 @@ class OptionsScreen extends Activity with TypedActivity {
   private[this] lazy val searchResults2Row: LinearLayout = findView(TR.searchResults2)
   private[this] lazy val status: TextView = findView(TR.status)
 
-  private var checkBoxes = Map[CheckBox, QuizGroupHeader]()
-  private var wmgLoadingFutures: Set[Future[WordMappingGroup]] = Set()
+  private[this] var checkBoxes = Map[CheckBox, QuizGroupHeader]()
+  private[this] var qgLoadingFutures: Set[Future[QuizGroup]] = Set()
 
-  private[this] def l = AppDependencies.logger
+  private[this] lazy val searchResultRows = List(searchResults0Row, searchResults1Row,
+      searchResults2Row)
 
   private[this] def quiz = SharedState.quiz
 
@@ -78,18 +82,17 @@ class OptionsScreen extends Activity with TypedActivity {
 
     def makeQuizGroupCheckBox(ctx: Context, quizGroupHeader: QuizGroupHeader): CheckBox = {
       val checkBox = new CheckBox(getApplicationContext)
-      checkBox.setText(quizGroupHeader.toString)
+      checkBox.setText(quizGroupHeader.promptType + "->" + quizGroupHeader.responseType)
       checkBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
         override def onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) {
           if (isChecked)
-            wmgLoadingFutures += dataStore.loadWmg(quizGroupHeader, SharedState.loadedQuizGroups)
+            qgLoadingFutures += dataStore.loadQuizGroup(quizGroupHeader,
+                SharedState.loadedQuizGroups)
         }
       })
 
-      if (activeHeaders.contains(quizGroupHeader)) {
+      if (activeHeaders.contains(quizGroupHeader))
         checkBox.setChecked(true)
-        l.log("setChecked " + quizGroupHeader)
-      }
       checkBox
     }
 
@@ -101,10 +104,10 @@ class OptionsScreen extends Activity with TypedActivity {
       quizGroupLayout.addView(checkBox, params)
     }
 
-    val availableWmgs = dataStore.findAvailableWmgs
-    availableWmgs.foreach(wmgHeader => l.log("wmg: " + wmgHeader))
-    checkBoxes = availableWmgs.map(wmgHeader =>
-      (makeQuizGroupCheckBox(ctx = this, wmgHeader), wmgHeader)).toMap
+    val availableQuizGroups = dataStore.findAvailableQuizGroups
+    availableQuizGroups.foreach(qgHeader => l.log("qg: " + qgHeader))
+    checkBoxes = availableQuizGroups.map(qgHeader =>
+      (makeQuizGroupCheckBox(ctx = this, qgHeader), qgHeader)).toMap
 
     checkBoxes.keys.foreach(addCheckBoxToLayout(_))
   }
@@ -115,7 +118,7 @@ class OptionsScreen extends Activity with TypedActivity {
     checkBoxes.filter(_._1.isChecked).map(_._2).toSet
 
   def activeQuizGroupHeaders: Set[QuizGroupHeader] =
-    SharedState.quiz.wordMappingGroups.map(_.header)
+    SharedState.quiz.quizGroups.map(_.header)
 
   def alert(title: String, message: String) {
     new AlertDialog.Builder(OptionsScreen.this).setTitle(title).setMessage(message).
@@ -139,9 +142,9 @@ class OptionsScreen extends Activity with TypedActivity {
 
   def getQuizReady() {
     def waitForQuizToLoadWithQuizGroups {
-      l.log("waiting for " +  wmgLoadingFutures.size + " wmgLoadingFutures")
-      val loadedQuizGroups = Await.result(Future.sequence(wmgLoadingFutures), 10 seconds)
-      wmgLoadingFutures = Set() // make sure the futures don't run again
+      l.log("waiting for " +  qgLoadingFutures.size + " qgLoadingFutures")
+      val loadedQuizGroups = Await.result(Future.sequence(qgLoadingFutures), 10 seconds)
+      qgLoadingFutures = Set() // make sure the futures don't run again
       loadedQuizGroups.foreach(SharedState.updateLoadedQuizGroups(_))
       fillQuizWithCheckedQuizGroups()
     }
@@ -153,15 +156,14 @@ class OptionsScreen extends Activity with TypedActivity {
 
   def fillQuizWithCheckedQuizGroups() {
 
-    def quizGroupForHeader(header: QuizGroupHeader): Option[WordMappingGroup] =
+    def quizGroupForHeader(header: QuizGroupHeader): Option[QuizGroup] =
       SharedState.loadedQuizGroups.find(_.header == header)
 
     val checkedQuizGroups = checkedQuizGroupHeaders.flatMap(quizGroupForHeader(_))
     l.log("filling quiz with checkedQuizGroups " + checkedQuizGroups.map(_.header))
 
-    SharedState.updateQuiz(QuizOfWordMappings(checkedQuizGroups))
+    SharedState.updateQuiz(Quiz(checkedQuizGroups))
   }
-
 
   def prepareSearchUi() {
     searchInputBox.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -204,26 +206,25 @@ class OptionsScreen extends Activity with TypedActivity {
         status.setText("No results found")
       else {
         status.setText("")
-        addRow(searchResults0Row, searchResults, 0)
-        addRow(searchResults1Row, searchResults, 1)
-        addRow(searchResults2Row, searchResults, 2)
+        for (rowNum <- 0 until searchResultRows.size)
+          addRow(searchResultRows(rowNum), searchResults, rowNum)
       }
     }
   }
 
   def searchDictionary(searchInput: String): List[SearchResult] = {
 
-    def convertToSearchResults(pairs: List[(String, WordMappingValueSetWrapperBase)],
-        wmg: WordMappingGroup) =
-      pairs.map(pair => SearchResult(wmg.header, WordMappingPair(pair._1, pair._2)))
+    def convertToSearchResults(pairs: List[(String, WordMappingValueSet)], quizGroup: QuizGroup) =
+      pairs.map(pair => SearchResult(quizGroup.header, WordMappingPair(pair._1, pair._2)))
 
  	  def resultsBeginningWith(input: String): List[SearchResult] =
-      quiz.wordMappingGroups.flatMap(wmg =>
-        convertToSearchResults(wmg.dictionary.mappingsForKeysBeginningWith(input), wmg)).toList
+      quiz.quizGroups.flatMap(quizGroup =>
+        convertToSearchResults(quizGroup.dictionary.mappingsForKeysBeginningWith(input),
+            quizGroup)).toList
 
     def resultsContaining(input: String): List[SearchResult] =
-      quiz.wordMappingGroups.flatMap(wmg =>
-        convertToSearchResults(wmg.dictionary.mappingsForKeysContaining(input), wmg)).toList
+      quiz.quizGroups.flatMap(quizGroup => convertToSearchResults(
+          quizGroup.dictionary.mappingsForKeysContaining(input), quizGroup)).toList
 	  
     var searchResults = List[SearchResult]()
     if (searchInput.length > 2) {
@@ -267,8 +268,6 @@ class OptionsScreen extends Activity with TypedActivity {
 
   def clearResults() {
     status.setText("")
-    searchResults0Row.removeAllViews()
-    searchResults1Row.removeAllViews()
-    searchResults2Row.removeAllViews()
+    searchResultRows.foreach(_.removeAllViews())
   }
 }

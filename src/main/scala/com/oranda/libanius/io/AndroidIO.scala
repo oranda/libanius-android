@@ -16,10 +16,11 @@
 
 package com.oranda.libanius.io
 
-import com.oranda.libanius.model.wordmapping.QuizGroupHeader
+import com.oranda.libanius.model.QuizGroupHeader
 import android.content.Context
 import java.io._
 import com.oranda.libanius.dependencies.{AppDependencies, Conf}
+import com.oranda.libanius.R
 
 case class AndroidIO(ctx: Context) extends PlatformIO {
 
@@ -56,16 +57,16 @@ case class AndroidIO(ctx: Context) extends PlatformIO {
     fOut.close()
   }
 
-  override def readWmgMetadataFromFile(wmgFileName: String): Option[QuizGroupHeader] =
-    readWmgMetadata(fileToInputStream(wmgFileName))
+  override def readQgMetadataFromFile(qgFileName: String): Option[QuizGroupHeader] =
+    readQgMetadata(fileToInputStream(qgFileName))
 
-  override def readWmgMetadataFromResource(wmgResName: String): Option[QuizGroupHeader] =
-    readWmgMetadata(resourceToInputStream(wmgResName))
+  override def readQgMetadataFromResource(qgResName: String): Option[QuizGroupHeader] =
+    readQgMetadata(resourceToInputStream(qgResName))
 
-  override def findWmgFileNamesFromFilesDir =
-    ctx.getFilesDir.listFiles.filter(_.getName.endsWith(".wmg")).map(_.getName)
+  override def findQgFileNamesFromFilesDir =
+    ctx.getFilesDir.listFiles.filter(_.getName.endsWith(".qg")).map(_.getName)
 
-  override def findWmgFileNamesFromResources =
-    classOf[android.R.raw].getFields.map(_.getName).filter(_.startsWith("wmg"))
+  override def findQgFileNamesFromResources =
+    classOf[R.raw].getFields.map(_.getName).filter(_.startsWith("qg"))
 
 }
