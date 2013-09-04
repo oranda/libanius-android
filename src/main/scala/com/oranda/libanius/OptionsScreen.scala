@@ -37,7 +37,7 @@ import com.oranda.libanius.io.AndroidIO
 import com.oranda.libanius.dependencies.{LoggerAndroid, Conf, AppDependencies, DataStore}
 import com.oranda.libanius.model.{Quiz, QuizGroup, SearchResult, QuizGroupHeader}
 
-class OptionsScreen extends Activity with TypedActivity {
+class OptionsScreen extends Activity with  TypedActivity {
 
   private[this] lazy val dataStore = DataStore(AndroidIO(ctx = this))
 
@@ -176,7 +176,7 @@ class OptionsScreen extends Activity with TypedActivity {
     })
   }
 
-  def closeSoftInput() {
+  def closeOnScreenKeyboard() {
     val inputMethodService = getSystemService(Context.INPUT_METHOD_SERVICE).
         asInstanceOf[InputMethodManager]
     inputMethodService.hideSoftInputFromWindow(searchInputBox.getWindowToken, 0)
@@ -184,7 +184,7 @@ class OptionsScreen extends Activity with TypedActivity {
 
   def findAndShowResultsAsync() {
     clearResults()
-    closeSoftInput()
+    closeOnScreenKeyboard()
     status.setText("Searching...")
     getQuizReady()
     val searchInput = searchInputBox.getText.toString
@@ -213,34 +213,19 @@ class OptionsScreen extends Activity with TypedActivity {
   }
 
   def searchDictionary(searchInput: String): List[SearchResult] = {
+    import Dictionary._  // make special search utilities available
 
-    def convertToSearchResults(pairs: List[(String, WordMappingValueSet)], quizGroup: QuizGroup) =
-      pairs.map(pair => SearchResult(quizGroup.header, WordMappingPair(pair._1, pair._2)))
-
- 	  def resultsBeginningWith(input: String): List[SearchResult] =
-      quiz.quizGroups.flatMap(quizGroup =>
-        convertToSearchResults(quizGroup.dictionary.mappingsForKeysBeginningWith(input),
-            quizGroup)).toList
-
-    def resultsContaining(input: String): List[SearchResult] =
-      quiz.quizGroups.flatMap(quizGroup => convertToSearchResults(
-          quizGroup.dictionary.mappingsForKeysContaining(input), quizGroup)).toList
-	  
-    var searchResults = List[SearchResult]()
-    if (searchInput.length > 2) {
-      searchResults = resultsBeginningWith(searchInput)
-      if (searchResults.isEmpty)
-        searchResults = resultsBeginningWith(searchInput.dropRight(1))
-      if (searchResults.isEmpty)
-        searchResults = resultsBeginningWith(searchInput.dropRight(2))
-      if (searchResults.isEmpty && searchInput.length > 3)
-        searchResults = resultsContaining(searchInput)
-	  }
- 	  searchResults
+    // Keep trying different ways of searching the dictionary until one finds something.
+    if (searchInput.length <= 2) Nil
+    else tryUntilResults(List(
+      searchFunction { quiz.resultsBeginningWith(searchInput) },
+      searchFunction { quiz.resultsBeginningWith(searchInput.dropRight(1)) },
+      searchFunction { quiz.resultsBeginningWith(searchInput.dropRight(2)) },
+      searchFunction { if (searchInput.length > 3) quiz.resultsContaining(searchInput) else Nil }
+    ))
   }
-  
-  def addRow(searchResultsRow: LinearLayout,
-      searchResults: List[SearchResult], index: Int) {
+
+  def addRow(searchResultsRow: LinearLayout, searchResults: List[SearchResult], index: Int) {
     if (searchResults.size > index) {
       val keyWordBox = new TextView(this)
       keyWordBox.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT,
