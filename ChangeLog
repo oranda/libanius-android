@@ -1,3 +1,8 @@
+== 0.88 September 9 2013
+
+  * Updated to work with new Dependency Injection model, including package restructuring.
+
+
 == 0.87 September 3 2013
 
   * Little updates to ensure it works with the restructured data model in libanius 0.87.
