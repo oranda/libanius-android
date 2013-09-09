@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius
+package com.oranda.libanius.android
 
 import java.lang.Runnable
 import scala.concurrent.{ future, ExecutionContext }
@@ -29,14 +29,11 @@ import android.os.Handler
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
-import com.oranda.libanius.io.AndroidIO
-import com.oranda.libanius.dependencies.{DataStore, AppDependencies}
-import com.oranda.libanius.model.quizitem.{QuizItem, QuizItemViewWithChoices}
+import com.oranda.libanius.dependencies.AppDependencyAccess
+import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
 import com.oranda.libanius.model.QuizGroupHeader
 
-class QuizScreen extends Activity with TypedActivity with Timestamps {
-
-  private[this] lazy val dataStore = DataStore(AndroidIO(ctx = this))
+class QuizScreen extends Activity with TypedActivity with Timestamps with AppDependencyAccess {
 
   private[this] lazy val questionLabel: TextView = findView(TR.question)
   private[this] lazy val questionNotesLabel: TextView = findView(TR.questionNotes)
@@ -49,32 +46,26 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
   private[this] lazy val prevAnswerOption2Label: TextView = findView(TR.prevAnswerOption2)
   private[this] lazy val prevAnswerOption3Label: TextView = findView(TR.prevAnswerOption3)
 
-  private[this] lazy val answerOptionButtons = List(answerOption1Button, answerOption2Button,
-      answerOption3Button)
-  private[this] lazy val prevOptionLabels = List(prevAnswerOption1Label, prevAnswerOption2Label,
-      prevAnswerOption3Label)
-
   private[this] lazy val speedLabel: TextView = findView(TR.speed)
   private[this] lazy val statusLabel: TextView = findView(TR.status)
-  
-  private[this] var currentQuizItem: QuizItemViewWithChoices = _
 
-  private[this] def l = AppDependencies.logger
+  private[this] lazy val answerOptionButtons = List(answerOption1Button,
+      answerOption2Button, answerOption3Button)
+  private[this] lazy val prevOptionLabels = List(prevAnswerOption1Label,
+      prevAnswerOption2Label, prevAnswerOption3Label)
+
+  private[this] var currentQuizItem: QuizItemViewWithChoices = _
 
   private[this] def quiz = SharedState.quiz
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
-    l.log("onCreate")
     setContentView(R.layout.quizscreen)
-
-    l.log("quiz groups are " + quiz.quizGroups.map(_.header).mkString)
     testUserWithQuizItem()
   }
 
   override def onPause() {
     super.onPause()
-    l.log("onPause")
     saveQuiz
   }
 
@@ -84,8 +75,6 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
         currentQuizItem = quizItem
         showNextQuizItem()
         SharedState.updateQuiz(quiz.addQuizGroup(quizGroup.updatedPromptNumber))
-        quiz.quizGroups.foreach(qg => l.log(quizGroup.promptType + " prompt number is " +
-            qg.currentPromptNumber))
       case _ =>
         printStatus("No more questions found! Done!")
     }
@@ -144,16 +133,13 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
 
   private def setPrevQuestionText() {
     var prevQuestionText = "PREV: " + questionLabel.getText
-    val maxAnswers = AppDependencies.conf.numCorrectAnswersRequired
+    val maxAnswers = conf.numCorrectAnswersRequired
     if (currentQuizItem.numCorrectAnswersInARow == maxAnswers)
       prevQuestionText += " (correct " + maxAnswers + " times -- COMPLETE)"
     prevQuestionLabel.setText(prevQuestionText)
   }
 
   private def populatePrevOptions() {
-
-    l.log("allChoices for currentQuizItem: " + currentQuizItem.allChoices)
-
     val reverseGroupHeader = currentQuizItem.quizGroupHeader.reverse
     val isReverseLookupPossible = quiz.findQuizGroup(reverseGroupHeader).isDefined
 
@@ -161,7 +147,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
       val labelsToOptions = prevOptionLabels zip currentQuizItem.allChoices
       labelsToOptions.foreach {
         case (label, option) => setPrevOptionsText(label, option,
-          currentQuizItem.quizGroupHeader, reverseGroupHeader)
+            currentQuizItem.quizGroupHeader, reverseGroupHeader)
       }
     }
   }
@@ -179,7 +165,6 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
   def setPrevOptionsText(prevOptionLabel: TextView, responseOption: String,
       qgHeader: QuizGroupHeader, qgReverseHeader: QuizGroupHeader) {
 
-    l.log("setPrevOptionsText: " + responseOption + ")")
     val values = quiz.findResponsesFor(responseOption, qgReverseHeader) match {
       case Nil => quiz.findPromptsFor(responseOption, qgHeader)
       case values => values
@@ -211,8 +196,6 @@ class QuizScreen extends Activity with TypedActivity with Timestamps {
     val userAnswerTxt = clickedButton.getText.toString
     val correctAnswer = currentQuizItem.quizItem.response
     val isCorrect = correctAnswer.matches(userAnswerTxt)
-    l.log("isCorrect? " + isCorrect + " userAnswerTxt: " + userAnswerTxt +
-      "; correctAnswer: " + correctAnswer)
     updateTimestamps(isCorrect)
     Util.stopwatch(SharedState.updateQuiz(quiz.updateWithUserAnswer(isCorrect, currentQuizItem)),
         "updateWithUserAnswer")

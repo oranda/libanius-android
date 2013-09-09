@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius.io
+package com.oranda.libanius.android.io
 
 import com.oranda.libanius.model.QuizGroupHeader
 import android.content.Context
 import java.io._
-import com.oranda.libanius.dependencies.{AppDependencies, Conf}
-import com.oranda.libanius.R
+import com.oranda.libanius.dependencies.{AppDependencyAccess}
+import com.oranda.libanius.io.PlatformIO
+import com.oranda.libanius.android.R
 
-case class AndroidIO(ctx: Context) extends PlatformIO {
+case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
+
+  if (ctx == null) throw new Exception()
 
   def readFile(fileName: String): Option[String] =
     if (ctx.getFileStreamPath(fileName).exists)
       Some(readInputStream(fileToInputStream(fileName)))
     else {
-      l.log("ERROR: File not found: " + fileName)
+      l.logError("File not found: " + fileName)
       None
     }
 
@@ -46,9 +49,8 @@ case class AndroidIO(ctx: Context) extends PlatformIO {
     val file = new File(fileName)
     val file2 = new File(fileNameBackup)
     file2.delete()
-	  //l.log("Renaming " + fileName + " to " + fileNameBackup)
-    file.renameTo(file2) // Doesn't seem to work, but not crucial
-    writeToFile(AppDependencies.conf.fileQuiz, strToSave)
+    file.renameTo(file2) // TODO: check again if this works on Android
+    writeToFile(conf.fileQuiz, strToSave)
   }
 
   def writeToFile(fileName: String, data: String) = {

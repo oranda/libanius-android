@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius
+package com.oranda.libanius.android
 
 import android.app.{AlertDialog, Activity}
 import android.widget._
@@ -23,7 +23,7 @@ import android.view.{KeyEvent, ViewGroup, View}
 import android.content.{Context, Intent}
 import scala.concurrent.{Await, future, Future, ExecutionContext}
 import ExecutionContext.Implicits.global
-import com.oranda.libanius.util.{StringSplitterFactoryAndroid, Util}
+import com.oranda.libanius.util.Util
 import com.oranda.libanius.model.wordmapping._
 import scala.collection.immutable.Set
 import scala.concurrent.duration._
@@ -33,15 +33,11 @@ import android.view.inputmethod.{InputMethodManager, EditorInfo}
 import android.view.ViewGroup.LayoutParams
 import android.view.View.OnClickListener
 import scala.util.Try
-import com.oranda.libanius.io.AndroidIO
-import com.oranda.libanius.dependencies.{LoggerAndroid, Conf, AppDependencies, DataStore}
 import com.oranda.libanius.model.{Quiz, QuizGroup, SearchResult, QuizGroupHeader}
+import com.oranda.libanius.dependencies.AppDependencyAccess
+import android.util.Log
 
-class OptionsScreen extends Activity with  TypedActivity {
-
-  private[this] lazy val dataStore = DataStore(AndroidIO(ctx = this))
-
-  private[this] lazy val l = AppDependencies.logger
+class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess {
 
   private[this] lazy val quizGroupLayout: LinearLayout = findView(TR.checkboxesLayout)
 
@@ -61,11 +57,8 @@ class OptionsScreen extends Activity with  TypedActivity {
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
-    Conf.setUp()
-    AppDependencies.init(Conf.setUp(),  new LoggerAndroid,
-         new DataStore(new AndroidIO(ctx = this)), new StringSplitterFactoryAndroid)
-    l.log("OptionsScreen.onCreate")
-    // readQuizMetadata
+
+    Log.d("Libanius", "OptionsScreen: onCreate ")
     initGui()
   }
 
@@ -78,9 +71,8 @@ class OptionsScreen extends Activity with  TypedActivity {
   def addQuizGroupCheckBoxes() {
 
     val activeHeaders = activeQuizGroupHeaders
-    l.log("activeHeaders: " + activeHeaders)
 
-    def makeQuizGroupCheckBox(ctx: Context, quizGroupHeader: QuizGroupHeader): CheckBox = {
+    def makeQuizGroupCheckBox(quizGroupHeader: QuizGroupHeader): CheckBox = {
       val checkBox = new CheckBox(getApplicationContext)
       checkBox.setText(quizGroupHeader.promptType + "->" + quizGroupHeader.responseType)
       checkBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
@@ -105,9 +97,8 @@ class OptionsScreen extends Activity with  TypedActivity {
     }
 
     val availableQuizGroups = dataStore.findAvailableQuizGroups
-    availableQuizGroups.foreach(qgHeader => l.log("qg: " + qgHeader))
     checkBoxes = availableQuizGroups.map(qgHeader =>
-      (makeQuizGroupCheckBox(ctx = this, qgHeader), qgHeader)).toMap
+        (makeQuizGroupCheckBox(qgHeader), qgHeader)).toMap
 
     checkBoxes.keys.foreach(addCheckBoxToLayout(_))
   }
@@ -136,13 +127,11 @@ class OptionsScreen extends Activity with  TypedActivity {
   }
 
   def addWordToQuiz(quizGroupHeader: QuizGroupHeader, keyWord: String, value: String) {
-    l.log("addWordToQuiz " + keyWord + " " + value)
     SharedState.updateQuiz(quiz.addWordMappingToFrontOfTwoGroups(quizGroupHeader, keyWord, value))
   }
 
   def getQuizReady() {
     def waitForQuizToLoadWithQuizGroups {
-      l.log("waiting for " +  qgLoadingFutures.size + " qgLoadingFutures")
       val loadedQuizGroups = Await.result(Future.sequence(qgLoadingFutures), 10 seconds)
       qgLoadingFutures = Set() // make sure the futures don't run again
       loadedQuizGroups.foreach(SharedState.updateLoadedQuizGroups(_))
@@ -155,13 +144,10 @@ class OptionsScreen extends Activity with  TypedActivity {
   }
 
   def fillQuizWithCheckedQuizGroups() {
-
     def quizGroupForHeader(header: QuizGroupHeader): Option[QuizGroup] =
       SharedState.loadedQuizGroups.find(_.header == header)
 
     val checkedQuizGroups = checkedQuizGroupHeaders.flatMap(quizGroupForHeader(_))
-    l.log("filling quiz with checkedQuizGroups " + checkedQuizGroups.map(_.header))
-
     SharedState.updateQuiz(Quiz(checkedQuizGroups))
   }
 
@@ -188,8 +174,6 @@ class OptionsScreen extends Activity with  TypedActivity {
     status.setText("Searching...")
     getQuizReady()
     val searchInput = searchInputBox.getText.toString
-
-    l.log("search input is " + searchInput)
 
     /*
      * Instead of using Android's AsyncTask, use a Scala Future. It's more concise and general,

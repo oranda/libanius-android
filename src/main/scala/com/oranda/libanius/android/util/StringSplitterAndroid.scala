@@ -1,7 +1,8 @@
-package com.oranda.libanius.util
+package com.oranda.libanius.android.util
 
 import android.text.TextUtils
 import java.lang.Character
+import com.oranda.libanius.util.StringSplitter
 
 class StringSplitterAndroid(_char: Character) extends StringSplitter(_char) {
   

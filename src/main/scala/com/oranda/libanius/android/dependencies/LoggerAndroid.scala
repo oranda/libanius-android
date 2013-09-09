@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius.dependencies
+package com.oranda.libanius.android.dependencies
 
 import android.util.Log
+import com.oranda.libanius.dependencies.Logger
 
 class LoggerAndroid extends Logger {
 

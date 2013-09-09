@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius
+package com.oranda.libanius.android
 
-import com.oranda.libanius.model.wordmapping._
 import com.oranda.libanius.model.{QuizGroup, Quiz}
 
 object SharedState {

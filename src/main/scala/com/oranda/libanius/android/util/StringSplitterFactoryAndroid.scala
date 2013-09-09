@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius.util
+package com.oranda.libanius.android.util
+
+import com.oranda.libanius.util.{StringSplitter, StringSplitterFactory}
 
 class StringSplitterFactoryAndroid extends StringSplitterFactory {
   def getSplitter(char: java.lang.Character): StringSplitter = new StringSplitterAndroid(char)
