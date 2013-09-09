@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius.android
+package com.oranda.libanius.mobile
 
 import com.oranda.libanius.model.{QuizGroup, Quiz}
 

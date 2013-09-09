@@ -1,4 +1,4 @@
-package com.oranda.libanius.android.util
+package com.oranda.libanius.mobile.util
 
 import android.text.TextUtils
 import java.lang.Character

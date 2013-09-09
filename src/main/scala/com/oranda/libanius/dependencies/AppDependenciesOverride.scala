@@ -20,9 +20,9 @@ import com.oranda.libanius.io.{PlatformIO}
 import com.oranda.libanius.util.{StringSplitterFactory}
 import android.app.Application
 import android.content.Context
-import com.oranda.libanius.android.io.{AndroidIO}
-import com.oranda.libanius.android.util.StringSplitterFactoryAndroid
-import com.oranda.libanius.android.dependencies.LoggerAndroid
+import com.oranda.libanius.mobile.io.{AndroidIO}
+import com.oranda.libanius.mobile.util.StringSplitterFactoryAndroid
+import com.oranda.libanius.mobile.dependencies.LoggerAndroid
 
 class AppDependenciesOverride extends Application {
 

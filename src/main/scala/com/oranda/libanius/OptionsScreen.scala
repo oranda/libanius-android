@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius.android
+package com.oranda.libanius
 
 import android.app.{AlertDialog, Activity}
-import android.widget._
-import android.os.Bundle
-import android.view.{KeyEvent, ViewGroup, View}
 import android.content.{Context, Intent}
+import android.os.Bundle
+import android.util.Log
+import android.view.inputmethod.{InputMethodManager, EditorInfo}
+import android.view.View.OnClickListener
+import android.view.ViewGroup.LayoutParams
+import android.view.{KeyEvent, View, ViewGroup}
+import android.widget.CompoundButton.OnCheckedChangeListener
+import android.widget._
 import scala.concurrent.{Await, future, Future, ExecutionContext}
 import ExecutionContext.Implicits.global
 import com.oranda.libanius.util.Util
@@ -28,14 +33,10 @@ import com.oranda.libanius.model.wordmapping._
 import scala.collection.immutable.Set
 import scala.concurrent.duration._
 import java.util.concurrent.TimeoutException
-import android.widget.CompoundButton.OnCheckedChangeListener
-import android.view.inputmethod.{InputMethodManager, EditorInfo}
-import android.view.ViewGroup.LayoutParams
-import android.view.View.OnClickListener
 import scala.util.Try
 import com.oranda.libanius.model.{Quiz, QuizGroup, SearchResult, QuizGroupHeader}
 import com.oranda.libanius.dependencies.AppDependencyAccess
-import android.util.Log
+import com.oranda.libanius.mobile.SharedState
 
 class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess {
 

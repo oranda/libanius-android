@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius.android
+package com.oranda.libanius
 
+import android.app.Activity
+import android.content.Intent
+import android.graphics.Color
+import android.os.{Handler, Bundle}
+import android.view.View
+import android.widget.{Button, TextView}
 import java.lang.Runnable
 import scala.concurrent.{ future, ExecutionContext }
 import ExecutionContext.Implicits.global
 
 import com.oranda.libanius.util.Util
-import android.app.Activity
-import android.content.Intent
-import android.graphics.Color
-import android.os.Bundle
-import android.os.Handler
-import android.view.View
-import android.widget.Button
-import android.widget.TextView
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
 import com.oranda.libanius.model.QuizGroupHeader
+import com.oranda.libanius.mobile.{SharedState, Timestamps}
 
 class QuizScreen extends Activity with TypedActivity with Timestamps with AppDependencyAccess {
 
@@ -224,8 +223,6 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   }
   
   def showSpeed() { speedLabel.setText("Speed: " + answerSpeed + "/min") }
-  
   def printStatus(text: String) { statusLabel.setText(text) }
-  
   def printScore(score: String) { statusLabel.setText("Score: " + score) }
 }

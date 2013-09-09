@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius.android.io
+package com.oranda.libanius.mobile.io
 
 import com.oranda.libanius.model.QuizGroupHeader
 import android.content.Context
 import java.io._
 import com.oranda.libanius.dependencies.{AppDependencyAccess}
 import com.oranda.libanius.io.PlatformIO
-import com.oranda.libanius.android.R
+import com.oranda.libanius.R
 
 case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
 

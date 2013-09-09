@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius.android
+package com.oranda.libanius.mobile
 
 /*
  * This class is used to help calculate the speed of user response by keeping a

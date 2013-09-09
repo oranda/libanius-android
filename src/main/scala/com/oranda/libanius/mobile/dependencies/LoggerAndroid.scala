@@ -14,10 +14,17 @@
  * limitations under the License.
  */
 
-package com.oranda.libanius.android.util
+package com.oranda.libanius.mobile.dependencies
 
-import com.oranda.libanius.util.{StringSplitter, StringSplitterFactory}
+import android.util.Log
+import com.oranda.libanius.dependencies.Logger
 
-class StringSplitterFactoryAndroid extends StringSplitterFactory {
-  def getSplitter(char: java.lang.Character): StringSplitter = new StringSplitterAndroid(char)
+class LoggerAndroid extends Logger {
+
+  override def logImpl(message: String, module: String = "Libanius", t: Option[Throwable] = None) {
+    t match {
+      case Some(t) => Log.d(module, message, t)
+      case _ => Log.d(module, message)
+    }
+  }
 }
