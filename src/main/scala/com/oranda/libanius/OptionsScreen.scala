@@ -39,7 +39,6 @@ import java.util.concurrent.TimeoutException
 import scala.util.Try
 import com.oranda.libanius.model.{Quiz, QuizGroup, SearchResult, QuizGroupHeader}
 import com.oranda.libanius.dependencies.AppDependencyAccess
-import com.oranda.libanius.mobile.SharedState
 import com.oranda.libanius.mobile.actors.LibaniusActorSystem
 import com.oranda.libanius.actors.{NoMessage, Message, CollectMessage}
 
