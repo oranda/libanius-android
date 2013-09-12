@@ -16,6 +16,9 @@
 
 package com.oranda.libanius
 
+import akka.actor.ActorDSL._
+import akka.actor._
+
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
@@ -29,8 +32,10 @@ import ExecutionContext.Implicits.global
 import com.oranda.libanius.util.Util
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
-import com.oranda.libanius.model.QuizGroupHeader
-import com.oranda.libanius.mobile.{SharedState, Timestamps}
+import com.oranda.libanius.model.{Quiz, QuizGroupHeader}
+import com.oranda.libanius.mobile.{Timestamps}
+import com.oranda.libanius.actors.{NoMessage, Message, CollectMessage}
+import com.oranda.libanius.mobile.actors.{LibaniusActorSystem}
 
 class QuizScreen extends Activity with TypedActivity with Timestamps with AppDependencyAccess {
 
@@ -55,10 +60,33 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] var currentQuizItem: QuizItemViewWithChoices = _
 
-  private[this] def quiz = SharedState.quiz
+  private[this] var quiz: Quiz = _  // set in onCreate
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
+
+    l.log("QuizScreen: onCreate ")
+    implicit val system: ActorSystem = LibaniusActorSystem.system
+    val recipientName = getClass.getSimpleName
+    LibaniusActorSystem.mailCentre ! CollectMessage(recipientName,
+      actor(new Act {
+        become {
+          case Message(quizReceived: Quiz) =>
+            l.log("received quiz " + quizReceived.numItems + " and setting it in QuizScreen")
+            quiz = quizReceived
+            runGuiOnUiThread()
+          case NoMessage() =>
+            runGuiOnUiThread()
+        }
+      })
+    )
+  }
+
+  def runGuiOnUiThread() {
+    runOnUiThread(new Runnable { override def run() { initGui() } })
+  }
+
+  def initGui() {
     setContentView(R.layout.quizscreen)
     testUserWithQuizItem()
   }
@@ -73,13 +101,13 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       case (Some((quizItem, quizGroup))) =>
         currentQuizItem = quizItem
         showNextQuizItem()
-        SharedState.updateQuiz(quiz.addQuizGroup(quizGroup.updatedPromptNumber))
+        quiz = quiz.addQuizGroup(quizGroup.updatedPromptNumber)
       case _ =>
         printStatus("No more questions found! Done!")
     }
   }
   
-  def testUserWithQuizItemAgain() { 
+  def testUserWithQuizItemAgain() {
     showScoreAsync() // The score takes a second to calculate, so do it in the background
     showSpeed()
     testUserWithQuizItem()
@@ -107,13 +135,14 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     val (newQuiz, wasRemoved) = quiz.removeQuizItem(currentQuizItem.quizItem,
         currentQuizItem.quizGroupHeader)
         
-    SharedState.updateQuiz(newQuiz)
-    
+    quiz = newQuiz
     if (wasRemoved) printStatus("Deleted word " + currentQuizItem.prompt)
     testUserWithQuizItemAgain()    
   }
   
   def gotoOptions(v: View) {
+    LibaniusActorSystem.sendMessageTo("OptionsScreen", quiz)
+    l.log("in OptionsScreen, sending quiz")
     val optionsScreen = new Intent(getApplicationContext(), classOf[OptionsScreen])
     startActivity(optionsScreen)
   }
@@ -196,7 +225,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     val correctAnswer = currentQuizItem.quizItem.response
     val isCorrect = correctAnswer.matches(userAnswerTxt)
     updateTimestamps(isCorrect)
-    Util.stopwatch(SharedState.updateQuiz(quiz.updateWithUserAnswer(isCorrect, currentQuizItem)),
+    Util.stopwatch(quiz = quiz.updateWithUserAnswer(isCorrect, currentQuizItem),
         "updateWithUserAnswer")
     updateUI(correctAnswer.text, clickedButton)
 

@@ -1,3 +1,9 @@
+== 0.89 September 12 2013
+
+  * Reintroduced Akka, now for message passing between activities, allowing
+   the elimination of SharedState.
+
+
 == 0.88 September 9 2013
 
   * Updated to work with new Dependency Injection model, including package restructuring.
