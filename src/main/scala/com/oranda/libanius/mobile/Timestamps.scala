@@ -17,8 +17,8 @@
 package com.oranda.libanius.mobile
 
 /*
- * This class is used to help calculate the speed of user response by keeping a list
- * of timestamps of correct responses.
+ * This class is used to help calculate the speed of user response by keeping a
+ * list of timestamps of correct responses.
  */
 trait Timestamps {
 
