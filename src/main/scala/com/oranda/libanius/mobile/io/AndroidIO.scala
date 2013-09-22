@@ -49,7 +49,7 @@ case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
     val file = new File(fileName)
     val file2 = new File(fileNameBackup)
     file2.delete()
-    file.renameTo(file2) // TODO: check again if this works on Android
+    file.renameTo(file2)
     writeToFile(conf.fileQuiz, strToSave)
   }
 

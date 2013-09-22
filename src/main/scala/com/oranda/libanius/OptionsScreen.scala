@@ -22,7 +22,6 @@ import akka.actor._
 import android.app.{AlertDialog, Activity}
 import android.content.{Context, Intent}
 import android.os.Bundle
-import android.util.Log
 import android.view.inputmethod.{InputMethodManager, EditorInfo}
 import android.view.View.OnClickListener
 import android.view.ViewGroup.LayoutParams
@@ -60,8 +59,7 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
 
   private[this] var quiz: Quiz = _  // set in onCreate
 
-  // A cache of quiz groups. It needs to be global because it must be updated when the quiz is.
-  // TODO: use function-local memoization instead!
+  // A cache of quiz groups.
   var loadedQuizGroups = List[QuizGroup]()
 
   protected[libanius] def updateLoadedQuizGroups(quizGroup: QuizGroup) {
@@ -259,7 +257,7 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
         btnTag.setText(value)
         btnTag.setOnClickListener(new OnClickListener() {
           def onClick(view: View) {
-            addWordToQuiz(searchResults(index).quizGroupHeader, keyWord, value) // TODO: SearchResult
+            addWordToQuiz(searchResults(index).quizGroupHeader, keyWord, value)
           }
         })
         searchResultsRow.addView(btnTag)

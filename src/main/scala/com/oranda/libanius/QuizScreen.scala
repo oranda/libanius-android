@@ -142,7 +142,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   
   def gotoOptions(v: View) {
     LibaniusActorSystem.sendMessageTo("OptionsScreen", quiz)
-    l.log("in OptionsScreen, sending quiz")
+    l.log("in QuizScreen, sending quiz")
     val optionsScreen = new Intent(getApplicationContext(), classOf[OptionsScreen])
     startActivity(optionsScreen)
   }
