@@ -15,7 +15,8 @@ object General {
     parallelExecution in Test := false,
     resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
     libraryDependencies ++= Seq(       //"com.typesafe.config" % "config" % "0.3.0",
-                                "com.typesafe.akka" % "akka-actor_2.10" % "2.1.0"),
+                                "com.typesafe.akka" % "akka-actor_2.10" % "2.1.0",
+                                "org.scalaz" %% "scalaz-core" % "7.0.3"),
     unmanagedClasspath in Runtime <+= (baseDirectory) map { bd => Attributed.blank(bd / "config") }
   )
 

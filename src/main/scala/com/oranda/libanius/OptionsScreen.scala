@@ -33,13 +33,13 @@ import ExecutionContext.Implicits.global
 import com.oranda.libanius.util.Util
 import com.oranda.libanius.model.wordmapping._
 import scala.collection.immutable.Set
-import scala.concurrent.duration._
 import java.util.concurrent.TimeoutException
 import scala.util.Try
-import com.oranda.libanius.model.{Quiz, QuizGroup, SearchResult, QuizGroupHeader}
+import com.oranda.libanius.model._
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import com.oranda.libanius.mobile.actors.LibaniusActorSystem
 import com.oranda.libanius.actors.{NoMessage, Message, CollectMessage}
+import com.oranda.libanius.model.SearchResult
 
 class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess {
 
@@ -52,20 +52,11 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
   private[this] lazy val status: TextView = findView(TR.status)
 
   private[this] var checkBoxes = Map[CheckBox, QuizGroupHeader]()
-  private[this] var qgLoadingFutures: Set[Future[QuizGroup]] = Set()
 
   private[this] lazy val searchResultRows = List(searchResults0Row, searchResults1Row,
       searchResults2Row)
 
-  private[this] var quiz: Quiz = _  // set in onCreate
-
-  // A cache of quiz groups.
-  var loadedQuizGroups = List[QuizGroup]()
-
-  protected[libanius] def updateLoadedQuizGroups(quizGroup: QuizGroup) {
-    loadedQuizGroups = loadedQuizGroups.filter(_.header != quizGroup.header)
-    loadedQuizGroups :+= quizGroup
-  }
+  private[this] var quiz: LazyQuiz = _  // set in onCreate
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -76,12 +67,12 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     LibaniusActorSystem.mailCentre ! CollectMessage(recipientName,
       actor(new Act {
         become {
-          case Message(quizReceived: Quiz) =>
+          case Message(quizReceived: LazyQuiz) =>
             l.log("received quiz " + quizReceived.numItems + " and setting it in OptionScreen")
             quiz = quizReceived
             runGuiOnUiThread()
           case NoMessage() =>
-            quiz = Quiz()
+            quiz = LazyQuiz(Quiz())
             runGuiOnUiThread()
         }
       })
@@ -100,20 +91,15 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
 
   def addQuizGroupCheckBoxes() {
 
-    val activeHeaders = activeQuizGroupHeaders
-
-    def makeQuizGroupCheckBox(quizGroupHeader: QuizGroupHeader): CheckBox = {
+    def makeQuizGroupCheckBox(qgHeader: QuizGroupHeader): CheckBox = {
       val checkBox = new CheckBox(getApplicationContext)
-      checkBox.setText(quizGroupHeader.promptType + "->" + quizGroupHeader.responseType)
+      checkBox.setText(qgHeader.promptType + "->" + qgHeader.responseType)
       checkBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
         override def onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) {
-          if (isChecked)
-            qgLoadingFutures += dataStore.loadQuizGroup(quizGroupHeader, loadedQuizGroups)
+          quiz = if (isChecked) quiz.activate(qgHeader) else quiz.deactivate(qgHeader)
         }
       })
-
-      if (activeHeaders.contains(quizGroupHeader))
-        checkBox.setChecked(true)
+      checkBox.setChecked(quiz.isActive(qgHeader))
       checkBox
     }
 
@@ -137,8 +123,6 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
   def checkedQuizGroupHeaders: Set[QuizGroupHeader] =
     checkBoxes.filter(_._1.isChecked).map(_._2).toSet
 
-  def activeQuizGroupHeaders: Set[QuizGroupHeader] = quiz.quizGroups.map(_.header)
-
   def alert(title: String, message: String) {
     new AlertDialog.Builder(OptionsScreen.this).setTitle(title).setMessage(message).
         setPositiveButton("OK", null).show()
@@ -149,7 +133,7 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
       alert("Error", "No boxes checked")
     else {
       getQuizReady()
-      LibaniusActorSystem.sendMessageTo("QuizScreen", quiz)
+      LibaniusActorSystem.sendQuizTo("QuizScreen", quiz)
       l.log("in OptionsScreen, sending quiz")
       val intent = new Intent(getBaseContext(), classOf[QuizScreen])
       startActivity(intent)
@@ -157,28 +141,13 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
   }
 
   def addWordToQuiz(quizGroupHeader: QuizGroupHeader, keyWord: String, value: String) {
-    quiz = quiz.addWordMappingToFrontOfTwoGroups(quizGroupHeader, keyWord, value)
+    quiz = quiz.addQuizItemToFrontOfTwoGroups(quizGroupHeader, keyWord, value)
   }
 
   def getQuizReady() {
-    def waitForQuizToLoadWithQuizGroups {
-      val loadedQuizGroups = Await.result(Future.sequence(qgLoadingFutures), 10 seconds)
-      qgLoadingFutures = Set() // make sure the futures don't run again
-      loadedQuizGroups.foreach(updateLoadedQuizGroups(_))
-      fillQuizWithCheckedQuizGroups()
-    }
-
-    Try(waitForQuizToLoadWithQuizGroups).recover {
+    Try(quiz = quiz.waitForQuizGroupsToLoad(checkedQuizGroupHeaders)).recover {
       case e: TimeoutException => l.logError("Timed out loading quiz groups")
     }
-  }
-
-  def fillQuizWithCheckedQuizGroups() {
-    def quizGroupForHeader(header: QuizGroupHeader): Option[QuizGroup] =
-      loadedQuizGroups.find(_.header == header)
-
-    val checkedQuizGroups = checkedQuizGroupHeaders.flatMap(quizGroupForHeader(_))
-    quiz = Quiz(checkedQuizGroups)
   }
 
   def prepareSearchUi() {

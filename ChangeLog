@@ -1,7 +1,9 @@
-== 0.89 September 12 2013
+== 0.89 September 30 2013
 
   * Reintroduced Akka, now for message passing between activities, allowing
    the elimination of SharedState.
+
+  * Factored out futures into a new entity LazyQuiz, which wraps the main Quiz entity.
 
 
 == 0.88 September 9 2013

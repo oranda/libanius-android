@@ -31,13 +31,13 @@ class MailCentre extends Actor with AppDependencyAccess {
 
   def receive = {
     case DropMessage(recipientName, message) =>
-      l.log("MailCentre.DropMessage for " + recipientName)
+      l.log("MailCentre.DropMessage " + message.getClass.getSimpleName + " for " + recipientName)
       messages.put(recipientName, message)
     case CollectMessage(requesterName, listenerRef) =>
       l.log("MailCentre.CollectMessage, requester is " + requesterName)
       listenerRef ! (messages.get(requesterName) match {
         case Some(obj) => Message(obj)
-        case None => NoMessage()
+        case _ => NoMessage()
       })
   }
 }

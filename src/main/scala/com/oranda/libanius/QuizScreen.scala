@@ -32,7 +32,7 @@ import ExecutionContext.Implicits.global
 import com.oranda.libanius.util.Util
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
-import com.oranda.libanius.model.{Quiz, QuizGroupHeader}
+import com.oranda.libanius.model.{LazyQuiz, QuizGroupHeader}
 import com.oranda.libanius.mobile.{Timestamps}
 import com.oranda.libanius.actors.{NoMessage, Message, CollectMessage}
 import com.oranda.libanius.mobile.actors.{LibaniusActorSystem}
@@ -60,7 +60,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] var currentQuizItem: QuizItemViewWithChoices = _
 
-  private[this] var quiz: Quiz = _  // set in onCreate
+  private[this] var quiz: LazyQuiz = _  // set in onCreate
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -71,11 +71,13 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     LibaniusActorSystem.mailCentre ! CollectMessage(recipientName,
       actor(new Act {
         become {
-          case Message(quizReceived: Quiz) =>
-            l.log("received quiz " + quizReceived.numItems + " and setting it in QuizScreen")
+          case Message(quizReceived: LazyQuiz) =>
+            l.log("received quiz with numItems " + quizReceived.numItems +
+                " and setting it in QuizScreen")
             quiz = quizReceived
             runGuiOnUiThread()
           case NoMessage() =>
+            l.logError("received no quiz!")
             runGuiOnUiThread()
         }
       })
@@ -98,10 +100,11 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   def testUserWithQuizItem() {
     Util.stopwatch(quiz.findPresentableQuizItem, "find quiz items") match {
-      case (Some((quizItem, quizGroup))) =>
+      case (Some((quizItem, qgWithHeader))) =>
         currentQuizItem = quizItem
         showNextQuizItem()
-        quiz = quiz.addQuizGroup(quizGroup.updatedPromptNumber)
+        quiz = quiz.addOrReplaceQuizGroup(qgWithHeader.header,
+            qgWithHeader.quizGroup.updatedPromptNumber)
       case _ =>
         printStatus("No more questions found! Done!")
     }
@@ -132,16 +135,15 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   def answerOption3Clicked(v: View) { processUserAnswer(answerOption3Button) }
   
   def removeCurrentWord(v: View) {
-    val (newQuiz, wasRemoved) = quiz.removeQuizItem(currentQuizItem.quizItem,
+    val (newQuiz: LazyQuiz, wasRemoved) = quiz.removeQuizItem(currentQuizItem.quizItem,
         currentQuizItem.quizGroupHeader)
-        
     quiz = newQuiz
     if (wasRemoved) printStatus("Deleted word " + currentQuizItem.prompt)
     testUserWithQuizItemAgain()    
   }
   
   def gotoOptions(v: View) {
-    LibaniusActorSystem.sendMessageTo("OptionsScreen", quiz)
+    LibaniusActorSystem.sendQuizTo("OptionsScreen", quiz)
     l.log("in QuizScreen, sending quiz")
     val optionsScreen = new Intent(getApplicationContext(), classOf[OptionsScreen])
     startActivity(optionsScreen)
@@ -169,7 +171,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private def populatePrevOptions() {
     val reverseGroupHeader = currentQuizItem.quizGroupHeader.reverse
-    val isReverseLookupPossible = quiz.findQuizGroup(reverseGroupHeader).isDefined
+    val isReverseLookupPossible = quiz.hasQuizGroup(reverseGroupHeader)
 
     if (isReverseLookupPossible) {
       val labelsToOptions = prevOptionLabels zip currentQuizItem.allChoices
@@ -216,8 +218,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   
   def saveQuiz() {
     printStatus("Saving quiz data...")
-    dataStore.saveQuiz(quiz)
-    printStatus("Finished saving quiz data!")
+    future { dataStore.saveQuiz(quiz) }
   }
 
   def processUserAnswer(clickedButton: Button) {
@@ -227,7 +228,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     updateTimestamps(isCorrect)
     Util.stopwatch(quiz = quiz.updateWithUserAnswer(isCorrect, currentQuizItem),
         "updateWithUserAnswer")
-    updateUI(correctAnswer.text, clickedButton)
+    updateUI(correctAnswer.value, clickedButton)
 
     val delayMillis = if (isCorrect) 10 else 300
     val handler = new Handler
