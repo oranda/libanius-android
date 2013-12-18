@@ -40,6 +40,7 @@ import com.oranda.libanius.dependencies.AppDependencyAccess
 import com.oranda.libanius.mobile.actors.LibaniusActorSystem
 import com.oranda.libanius.actors.{NoMessage, Message, CollectMessage}
 import com.oranda.libanius.model.SearchResult
+import com.oranda.libanius.model.quizgroup.QuizGroupHeader
 
 class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess {
 
@@ -68,7 +69,7 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
       actor(new Act {
         become {
           case Message(quizReceived: LazyQuiz) =>
-            l.log("received quiz " + quizReceived.numItems + " and setting it in OptionScreen")
+            l.log("received quiz " + quizReceived.numQuizItems + " and setting it in OptionScreen")
             quiz = quizReceived
             runGuiOnUiThread()
           case NoMessage() =>

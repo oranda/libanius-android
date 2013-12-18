@@ -25,17 +25,17 @@ import android.graphics.Color
 import android.os.{Handler, Bundle}
 import android.view.View
 import android.widget.{Button, TextView}
-import java.lang.Runnable
 import scala.concurrent.{ future, ExecutionContext }
 import ExecutionContext.Implicits.global
 
-import com.oranda.libanius.util.Util
+import com.oranda.libanius.util.{StringUtil, Util}
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
-import com.oranda.libanius.model.{LazyQuiz, QuizGroupHeader}
-import com.oranda.libanius.mobile.{Timestamps}
+import com.oranda.libanius.model.LazyQuiz
+import com.oranda.libanius.mobile.Timestamps
 import com.oranda.libanius.actors.{NoMessage, Message, CollectMessage}
 import com.oranda.libanius.mobile.actors.{LibaniusActorSystem}
+import com.oranda.libanius.model.quizgroup.QuizGroupHeader
 
 class QuizScreen extends Activity with TypedActivity with Timestamps with AppDependencyAccess {
 
@@ -72,7 +72,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       actor(new Act {
         become {
           case Message(quizReceived: LazyQuiz) =>
-            l.log("received quiz with numItems " + quizReceived.numItems +
+            l.log("received quiz with numItems " + quizReceived.numQuizItems +
                 " and setting it in QuizScreen")
             quiz = quizReceived
             runGuiOnUiThread()
@@ -202,8 +202,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     prevOptionLabel.setText(responseOption + " = " + values.mkString(", "))
   }
   
-  def setColorOnAnswer(answerOptionButton: Button, 
-      prevAnswerOptionLabel: TextView, CORRECT_BUTTON: Button, CLICKED_BUTTON: Button) {
+  def setColorOnAnswer(answerOptionButton: Button, prevAnswerOptionLabel: TextView,
+      CORRECT_BUTTON: Button, CLICKED_BUTTON: Button) {
     
     answerOptionButton match {
       case CORRECT_BUTTON => 
@@ -223,8 +223,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   def processUserAnswer(clickedButton: Button) {
     val userAnswerTxt = clickedButton.getText.toString
-    val correctAnswer = currentQuizItem.quizItem.response
-    val isCorrect = correctAnswer.matches(userAnswerTxt)
+    val correctAnswer = currentQuizItem.quizItem.correctResponse
+    val isCorrect = correctAnswer.looselyMatches(userAnswerTxt)
     updateTimestamps(isCorrect)
     Util.stopwatch(quiz = quiz.updateWithUserAnswer(isCorrect, currentQuizItem),
         "updateWithUserAnswer")
@@ -236,19 +236,16 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   }
 
   def showScoreAsync() {
-    def formatAndPrintScore(scoreStr: String) {
-      val scoreStrMaxIndex = scala.math.min(scoreStr.length, 6)
-      printScore(scoreStr.substring(0, scoreStrMaxIndex) + "%")
-    }
-
     /*
      * Instead of using Android's AsyncTask, use a Scala Future. It's more concise and general,
      * but we need to remind Android to use the UI thread when the result is returned.
      */
     future {
-      (Util.stopwatch(quiz.scoreSoFar, "scoreSoFar") * 100).toString
-    } map { scoreSoFar: String =>
-      runOnUiThread(new Runnable { override def run() { formatAndPrintScore(scoreSoFar) } })
+      Util.stopwatch(quiz.scoreSoFar, "scoreSoFar")
+    } map { scoreSoFar: BigDecimal =>
+      runOnUiThread(new Runnable { override def run() {
+        printScore(StringUtil.formatScore(scoreSoFar)) }
+      })
     }
   }
   

@@ -16,12 +16,12 @@
 
 package com.oranda.libanius.mobile.io
 
-import com.oranda.libanius.model.QuizGroupHeader
 import android.content.Context
 import java.io._
 import com.oranda.libanius.dependencies.{AppDependencyAccess}
 import com.oranda.libanius.io.PlatformIO
 import com.oranda.libanius.R
+import com.oranda.libanius.model.quizgroup.QuizGroupHeader
 
 case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
 
@@ -37,8 +37,7 @@ case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
 
   def resID(resName: String) = ctx.getResources.getIdentifier(resName, "raw", ctx.getPackageName)
 
-  def resourceToInputStream(resName: String) =
-    ctx.getResources.openRawResource(resID(resName))
+  def resourceToInputStream(resName: String) = ctx.getResources.openRawResource(resID(resName))
 
   def fileToInputStream(fileName: String) = ctx.openFileInput(fileName)
 
@@ -66,9 +65,9 @@ case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
     readQgMetadata(resourceToInputStream(qgResName))
 
   override def findQgFileNamesFromFilesDir =
-    ctx.getFilesDir.listFiles.filter(_.getName.endsWith(".qg")).map(_.getName)
+    ctx.getFilesDir.listFiles.filter(_.getName.endsWith(".qgr")).map(_.getName)
 
   override def findQgFileNamesFromResources =
-    classOf[R.raw].getFields.map(_.getName).filter(_.startsWith("qg"))
+    classOf[R.raw].getFields.map(_.getName).filter(_.startsWith("qgr"))
 
 }

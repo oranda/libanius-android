@@ -15,7 +15,7 @@
  */
 package com.oranda.libanius.model
 
-import com.oranda.libanius.model.quizitem.{QuizItem}
+import com.oranda.libanius.model.quizitem.QuizItem
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import scala.concurrent._
 import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
@@ -27,6 +27,7 @@ import scala.concurrent.duration._
 
 import scala.concurrent.{ future, ExecutionContext }
 import ExecutionContext.Implicits.global
+import com.oranda.libanius.model.quizgroup.{QuizGroupHeader, QuizGroup, QuizGroupWithHeader}
 
 
 /*
@@ -52,28 +53,27 @@ case class LazyQuiz(quiz: Quiz) extends AppDependencyAccess {
 
   def updateWithUserAnswer(isCorrect: Boolean, currentQuizItem: QuizItemViewWithChoices):
       LazyQuiz =
-    copy(quiz = quiz.updateWithUserAnswer(isCorrect, currentQuizItem))
+    copy(quiz = quiz.updateWithUserResponse(isCorrect, currentQuizItem.quizGroupHeader,
+        currentQuizItem.quizItem))
 
   def removeQuizItem(quizItem: QuizItem, header: QuizGroupHeader): (LazyQuiz, Boolean) = {
     val (newQuiz, result) = quiz.removeQuizItem(quizItem, header)
     (copy(quiz = newQuiz), result)
   }
 
-  def deactivate(header: QuizGroupHeader): LazyQuiz =
-    copy(quiz = quiz.deactivate(header))
+  def deactivate(header: QuizGroupHeader): LazyQuiz = copy(quiz = quiz.deactivate(header))
 
   def activate(header: QuizGroupHeader): LazyQuiz =
-    if (!quiz.hasQuizGroup(header))
-      loadQuizGroup(header)
-    else
-      copy(quiz = quiz.activate(header))
+    if (!quiz.hasQuizGroup(header)) loadQuizGroup(header)
+    else copy(quiz = quiz.activate(header))
 
   private def loadQuizGroup(header: QuizGroupHeader): LazyQuiz = {
     qgLoadingFutures += future {
       val quizGroup = dataStore.loadQuizGroup(header).activate
       QuizGroupWithHeader(header, quizGroup)
     }
-    this // activate flag is not set yet -- the quizGroup is retrieved later from the Future
+    this
+    // active flag is not set yet but it is by the time the quizGroup is retrieved from the Future
   }
 
   def waitForQuizGroupsToLoad(quizGroupHeaders: Set[QuizGroupHeader]): LazyQuiz = {
