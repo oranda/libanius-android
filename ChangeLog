@@ -1,6 +1,6 @@
 == 0.93 January 4 2014
 
-  * After 3 correct responses, a quiz item will now prompt for text input instead of
+  * After 3 correct responses, a quiz item will now ask for text input instead of
    mutliple choice.
 
 
