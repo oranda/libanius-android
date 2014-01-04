@@ -16,11 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+package com.oranda.libanius.mobile.actors
 
-package com.oranda.libanius.mobile.util
+import akka.actor.{Props, ActorSystem}
+import com.oranda.libanius.model.{LazyQuiz}
+import com.oranda.libanius.actors.{DropMessage}
+import com.oranda.libanius.dependencies.AppDependencyAccess
 
-import com.oranda.libanius.util.{StringSplitter, StringSplitterFactory}
+object LibaniusActorSystem extends AppDependencyAccess {
+  val system: ActorSystem = ActorSystem("LibaniusActorSystem")
+  val mailCentre = LibaniusActorSystem.system.actorOf(Props(new MailCentre), "MailCentre")
 
-class StringSplitterFactoryAndroid extends StringSplitterFactory {
-  def getSplitter(char: java.lang.Character): StringSplitter = new StringSplitterAndroid(char)
+  def sendQuizTo(recipientName: String, quiz: LazyQuiz) {
+    mailCentre ! DropMessage(recipientName, quiz)
+  }
 }
+
+
