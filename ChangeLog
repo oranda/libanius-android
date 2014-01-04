@@ -1,3 +1,9 @@
+== 0.93 January 4 2014
+
+  * After 3 correct responses, a quiz item will now prompt for text input instead of
+   mutliple choice.
+
+
 == 0.89 September 30 2013
 
   * Reintroduced Akka, now for message passing between activities, allowing
