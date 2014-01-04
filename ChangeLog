@@ -4,6 +4,11 @@
    mutliple choice.
 
 
+== 0.92 December 18 2013
+
+  * Tweaks to ensure Libanius Android works with the revised data structures in Libanius Core 0.92.
+
+
 == 0.89 September 30 2013
 
   * Reintroduced Akka, now for message passing between activities, allowing
