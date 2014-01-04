@@ -1,17 +1,19 @@
 /*
- * Copyright 2012-2013 James McCabe <james@oranda.com>
+ * Libanius-Android
+ * Copyright (C) 2012-2014 James McCabe <james@oranda.com>
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain
- * a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.oranda.libanius
@@ -21,42 +23,44 @@ import akka.actor._
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Color
 import android.os.{Handler, Bundle}
-import android.view.View
-import android.widget.{Button, TextView}
+import android.view.{Gravity, KeyEvent, View}
+import android.widget.{EditText, LinearLayout, Button, TextView}
 import scala.concurrent.{ future, ExecutionContext }
 import ExecutionContext.Implicits.global
 
 import com.oranda.libanius.util.{StringUtil, Util}
 import com.oranda.libanius.dependencies.AppDependencyAccess
-import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
-import com.oranda.libanius.model.LazyQuiz
+import com.oranda.libanius.model.{Quiz, LazyQuiz}
 import com.oranda.libanius.mobile.Timestamps
-import com.oranda.libanius.actors.{NoMessage, Message, CollectMessage}
 import com.oranda.libanius.mobile.actors.{LibaniusActorSystem}
-import com.oranda.libanius.model.quizgroup.QuizGroupHeader
+import com.oranda.libanius.model.quizgroup.{QuizGroup, QuizGroupHeader}
+import android.view.View.OnClickListener
+import android.util.TypedValue
+import android.view.inputmethod.EditorInfo
+import com.oranda.libanius.consoleui.Output._
+import com.oranda.libanius.actors.Message
+import scala.Some
+import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
+import com.oranda.libanius.actors.NoMessage
+import com.oranda.libanius.actors.CollectMessage
+import android.graphics.Color
+import scala.collection.immutable.ListMap
 
 class QuizScreen extends Activity with TypedActivity with Timestamps with AppDependencyAccess {
 
+  private[this] lazy val quizView: LinearLayout = findView(TR.quizView)
   private[this] lazy val questionLabel: TextView = findView(TR.question)
   private[this] lazy val questionNotesLabel: TextView = findView(TR.questionNotes)
-  private[this] lazy val answerOption1Button: Button = findView(TR.answerOption1)
-  private[this] lazy val answerOption2Button: Button = findView(TR.answerOption2)
-  private[this] lazy val answerOption3Button: Button = findView(TR.answerOption3)
-    
-  private[this] lazy val prevQuestionLabel: TextView = findView(TR.prevQuestion)
-  private[this] lazy val prevAnswerOption1Label: TextView = findView(TR.prevAnswerOption1)
-  private[this] lazy val prevAnswerOption2Label: TextView = findView(TR.prevAnswerOption2)
-  private[this] lazy val prevAnswerOption3Label: TextView = findView(TR.prevAnswerOption3)
+
+  private[this] lazy val responseInputArea: LinearLayout = findView(TR.responseInputArea)
+
+  private[this] lazy val prevQuestionArea: LinearLayout = findView(TR.prevQuestionArea)
+  private[this] lazy val prevOptionArea: LinearLayout = findView(TR.prevOptionArea)
 
   private[this] lazy val speedLabel: TextView = findView(TR.speed)
-  private[this] lazy val statusLabel: TextView = findView(TR.status)
 
-  private[this] lazy val answerOptionButtons = List(answerOption1Button,
-      answerOption2Button, answerOption3Button)
-  private[this] lazy val prevOptionLabels = List(prevAnswerOption1Label,
-      prevAnswerOption2Label, prevAnswerOption3Label)
+  private[this] lazy val statusLabel: TextView = findView(TR.status)
 
   private[this] var currentQuizItem: QuizItemViewWithChoices = _
 
@@ -98,42 +102,82 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     saveQuiz
   }
 
+  override def onResume() {
+    super.onResume()
+    // Check that the quiz data has not been cleared from memory on a resume
+    if (quiz == null)
+      quiz = LazyQuiz(Quiz(dataStore.loadAllQuizGroupsFromFilesDir))
+  }
+
   def testUserWithQuizItem() {
     Util.stopwatch(quiz.findPresentableQuizItem, "find quiz items") match {
       case (Some((quizItem, qgWithHeader))) =>
         currentQuizItem = quizItem
-        showNextQuizItem()
+        showNextQuizItem(currentQuizItem)
         quiz = quiz.addOrReplaceQuizGroup(qgWithHeader.header,
             qgWithHeader.quizGroup.updatedPromptNumber)
       case _ =>
         printStatus("No more questions found! Done!")
     }
   }
-  
+
   def testUserWithQuizItemAgain() {
     showScoreAsync() // The score takes a second to calculate, so do it in the background
     showSpeed()
     testUserWithQuizItem()
   }
-  
-  def showNextQuizItem() {
-    answerOptionButtons.foreach(_.setBackgroundColor(Color.LTGRAY))
+
+  private[this] def showNextQuizItem(currentQuizItem: QuizItemViewWithChoices) {
 
     questionLabel.setText(currentQuizItem.prompt.toString)
     var questionNotesText = "What is the " + currentQuizItem.responseType + "?"
     if (currentQuizItem.numCorrectAnswersInARow > 0)
-      questionNotesText += " (correctly answered " +
+      questionNotesText += " (answered right " +
           currentQuizItem.numCorrectAnswersInARow + " times)"
     questionNotesLabel.setText(questionNotesText)
-        
-    val optionsIter = currentQuizItem.allChoices.iterator
-    answerOptionButtons.foreach(_.setText(optionsIter.next))
+    if (currentQuizItem.useMultipleChoice) presentChoiceButtons(currentQuizItem)
+    else showTextBoxAndGetInput(currentQuizItem)
   }
-  
-  def answerOption1Clicked(v: View) { processUserAnswer(answerOption1Button) }
-  def answerOption2Clicked(v: View) { processUserAnswer(answerOption2Button) }
-  def answerOption3Clicked(v: View) { processUserAnswer(answerOption3Button) }
-  
+
+  private[this] def presentChoiceButtons(currentQuizItem: QuizItemViewWithChoices) {
+    responseInputArea.removeAllViews()
+    val choiceButtons = Widgets.constructChoiceButtons(this, currentQuizItem.allChoices)
+
+    choiceButtons.foreach { choiceButton =>
+      choiceButton.setOnClickListener(new OnClickListener() {
+        def onClick(view: View) {
+          processButtonResponse(currentQuizItem, choiceButtons, choiceButton)
+        }
+      })
+      responseInputArea.addView(choiceButton)
+      val spacer = new TextView(this)
+      spacer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15)
+      spacer.setText(" ")
+      responseInputArea.addView(spacer)
+    }
+  }
+
+  private[this] def showTextBoxAndGetInput(currentQuizItem: QuizItemViewWithChoices) {
+    responseInputArea.removeAllViews()
+
+    val responseTextBox = new EditText(this)
+    val ctx = this
+    responseTextBox.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+      override def onEditorAction(searchInputBox: TextView, actionId: Int,
+          event: KeyEvent): Boolean = {
+        if (actionId == EditorInfo.IME_ACTION_DONE || event.getAction == KeyEvent.ACTION_DOWN) {
+          Widgets.closeOnscreenKeyboard(ctx, searchInputBox.getWindowToken)
+          processTextResponse(currentQuizItem, searchInputBox.getText.toString)
+        }
+        true
+      }
+    })
+    responseInputArea.addView(responseTextBox)
+    responseTextBox.setGravity(Gravity.TOP)
+    responseTextBox.setSelected(true)
+    Widgets.showOnscreenKeyboard(this, quizView)
+  }
+
   def removeCurrentWord(v: View) {
     val (newQuiz: LazyQuiz, wasRemoved) = quiz.removeQuizItem(currentQuizItem.quizItem,
         currentQuizItem.quizGroupHeader)
@@ -149,93 +193,128 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     startActivity(optionsScreen)
   }
 
-  private def updateUI(correctAnswer: String, clickedButton: Button) {
-    resetButtonAndLabelColors()
-    setPrevQuestionText()
-    populatePrevOptions()
-    setColorsForButtons(correctAnswer, clickedButton)
+  private[this] def updateUIAfterChoice(currentQuizItem: QuizItemViewWithChoices,
+      choiceButtons: List[Button], clickedButton: Button) {
+    updatePrevOptionArea(currentQuizItem)
+    val correctResp = currentQuizItem.quizItem.correctResponse.value
+    Widgets.setColorsForButtons(choiceButtons, findPrevOptionLabels, correctResp, clickedButton)
   }
 
-  private def resetButtonAndLabelColors() {
-    prevOptionLabels.foreach (_.setTextColor(Color.LTGRAY))
-    answerOptionButtons.foreach (_.setBackgroundColor(Color.LTGRAY))
+  private[this] def updateUIAfterText(currentQuizItem: QuizItemViewWithChoices,
+      userWasCorrect: Boolean) {
+    updatePrevOptionArea(currentQuizItem)
+
+    val feedbackText = new TextView(this)
+    feedbackText.setGravity(Gravity.TOP)
+    feedbackText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20)
+
+    if (userWasCorrect) {
+      feedbackText.setTextColor(Color.GREEN)
+      feedbackText.setText("\nCorrect!\n")
+    } else {
+      feedbackText.setTextColor(Color.RED)
+      feedbackText.setText("\nWrong! It's " + currentQuizItem.quizItem.correctResponse + "\n")
+    }
+    responseInputArea.addView(feedbackText)
+
+    val correctResp = currentQuizItem.quizItem.correctResponse.value
+    Widgets.setColorsForPrevOptions(findPrevOptionLabels, correctResp)
   }
 
-  private def setPrevQuestionText() {
-    var prevQuestionText = "PREV: " + questionLabel.getText
-    val maxAnswers = conf.numCorrectAnswersRequired
-    if (currentQuizItem.numCorrectAnswersInARow == maxAnswers)
-      prevQuestionText += " (correct " + maxAnswers + " times -- COMPLETE)"
-    prevQuestionLabel.setText(prevQuestionText)
+
+  private[this] def updatePrevOptionArea(currentQuizItem: QuizItemViewWithChoices) {
+    addPrevQuestionLabel(currentQuizItem)
+    addPrevOptionLabels(currentQuizItem)
   }
 
-  private def populatePrevOptions() {
+  private[this] def findPrevOptionLabels: Seq[TextView] =
+    (0 until prevOptionArea.getChildCount).map( prevOptionArea.getChildAt(_).
+        asInstanceOf[TextView])
+
+  private[this] def constructPrevOptionLabels(currentQuizItem: QuizItemViewWithChoices):
+      List[TextView] = {
+
     val reverseGroupHeader = currentQuizItem.quizGroupHeader.reverse
     val isReverseLookupPossible = quiz.hasQuizGroup(reverseGroupHeader)
 
     if (isReverseLookupPossible) {
-      val labelsToOptions = prevOptionLabels zip currentQuizItem.allChoices
-      labelsToOptions.foreach {
-        case (label, option) => setPrevOptionsText(label, option,
-            currentQuizItem.quizGroupHeader, reverseGroupHeader)
-      }
+      val prevOptionTexts = currentQuizItem.allChoices.map(prevOptionsText(_,
+          currentQuizItem.quizGroupHeader, reverseGroupHeader))
+      Widgets.constructPrevOptionLabels(this, prevOptionTexts)
     }
+    else Nil
   }
 
-  private def setColorsForButtons(correctAnswer: String, clickedButton: Button) {
-
-    answerOptionButtons.find(_.getText == correctAnswer).foreach { correctButton =>
-      val buttonsToLabels = answerOptionButtons zip prevOptionLabels
-      buttonsToLabels.foreach { buttonToLabel =>
-        setColorOnAnswer(buttonToLabel._1, buttonToLabel._2, correctButton, clickedButton)
-      }
-    }
+  private[this] def addPrevQuestionLabel(currentQuizItem: QuizItemViewWithChoices) {
+    val maxAnswers = conf.numCorrectAnswersRequired
+    val prevQuestionText = "PREV: " + questionLabel.getText +
+        (if (currentQuizItem.numCorrectAnswersInARow == maxAnswers)
+           " (correct " + maxAnswers + " times -- COMPLETE)"
+        else "")
+    val prevQuestionLabel = Widgets.constructPrevLabel(this, prevQuestionText)
+    prevQuestionArea.removeAllViews()
+    prevQuestionArea.addView(prevQuestionLabel)
+    // Add spacer labels in order to align the prevQuestionLabel at the top
+    val numSpacers = currentQuizItem.allChoices.size - 1
+    List.fill(numSpacers)(" ").map(Widgets.constructPrevLabel(this, _)).foreach(
+        prevQuestionArea.addView(_))
   }
 
-  def setPrevOptionsText(prevOptionLabel: TextView, responseOption: String,
-      qgHeader: QuizGroupHeader, qgReverseHeader: QuizGroupHeader) {
+  private[this] def addPrevOptionLabels(currentQuizItem: QuizItemViewWithChoices) {
+    val prevOptionLabels = constructPrevOptionLabels(currentQuizItem)
+    prevOptionArea.removeAllViews()
+    prevOptionLabels.foreach(prevOptionArea.addView(_))
+  }
+
+  private[this] def prevOptionsText(responseOption: String, qgHeader: QuizGroupHeader,
+      qgReverseHeader: QuizGroupHeader): String = {
 
     val values = quiz.findResponsesFor(responseOption, qgReverseHeader) match {
       case Nil => quiz.findPromptsFor(responseOption, qgHeader)
       case values => values
     }
-    prevOptionLabel.setText(responseOption + " = " + values.mkString(", "))
+    responseOption + " = " + values.mkString(", ")
   }
-  
-  def setColorOnAnswer(answerOptionButton: Button, prevAnswerOptionLabel: TextView,
-      CORRECT_BUTTON: Button, CLICKED_BUTTON: Button) {
-    
-    answerOptionButton match {
-      case CORRECT_BUTTON => 
-        answerOptionButton.setBackgroundColor(Color.GREEN)
-        prevAnswerOptionLabel.setTextColor(Color.GREEN)
-      case CLICKED_BUTTON => 
-        answerOptionButton.setBackgroundColor(Color.RED)
-        prevAnswerOptionLabel.setTextColor(Color.RED)
-      case _ =>
-    }
-  }
-  
-  def saveQuiz() {
+
+  private[this] def saveQuiz() {
     printStatus("Saving quiz data...")
     future { dataStore.saveQuiz(quiz) }
   }
 
-  def processUserAnswer(clickedButton: Button) {
-    val userAnswerTxt = clickedButton.getText.toString
-    val correctAnswer = currentQuizItem.quizItem.correctResponse
-    val isCorrect = correctAnswer.looselyMatches(userAnswerTxt)
-    updateTimestamps(isCorrect)
-    Util.stopwatch(quiz = quiz.updateWithUserAnswer(isCorrect, currentQuizItem),
-        "updateWithUserAnswer")
-    updateUI(correctAnswer.value, clickedButton)
+  private[this] def processButtonResponse(currentQuizItem: QuizItemViewWithChoices,
+      choiceButtons: List[Button], clickedButton: Button) {
+    val userResponse = clickedButton.getText.toString
+    val userWasCorrect = currentQuizItem.quizItem.correctResponse.looselyMatches(userResponse)
+    processResponse(userResponse, userWasCorrect)
+    updateUIAfterChoice(currentQuizItem, choiceButtons, clickedButton)
+    pauseThenTestAgain(userWasCorrect)
+  }
 
-    val delayMillis = if (isCorrect) 10 else 300
+  private[this] def processTextResponse(currentQuizItem: QuizItemViewWithChoices,
+      userResponse: String) {
+    val userWasCorrect = quiz.isCorrect(currentQuizItem.quizGroupHeader,
+        currentQuizItem.prompt.value, userResponse)
+    processResponse(userResponse, userWasCorrect)
+    updateUIAfterText(currentQuizItem, userWasCorrect)
+    pauseThenTestAgain(userWasCorrect)
+  }
+
+  private[this] def processResponse(userResponse: String, userWasCorrect: Boolean) {
+    updateTimestamps(userWasCorrect)
+    Util.stopwatch(quiz = quiz.updateWithUserAnswer(userWasCorrect, currentQuizItem),
+        "updateWithUserAnswer")
+  }
+
+  private[this] def pauseThenTestAgain(userWasCorrect: Boolean) {
+    val delayMillis =
+      if (currentQuizItem.useMultipleChoice) if (userWasCorrect) 50 else 300
+      else if (userWasCorrect) 400 else 1800
+
     val handler = new Handler
     handler.postDelayed(new Runnable() { def run() = testUserWithQuizItemAgain() }, delayMillis)
   }
 
-  def showScoreAsync() {
+  private[this] def showScoreAsync() {
     /*
      * Instead of using Android's AsyncTask, use a Scala Future. It's more concise and general,
      * but we need to remind Android to use the UI thread when the result is returned.
@@ -248,8 +327,9 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       })
     }
   }
-  
+
   def showSpeed() { speedLabel.setText("Speed: " + answerSpeed + "/min") }
+
   def printStatus(text: String) { statusLabel.setText(text) }
   def printScore(score: String) { statusLabel.setText("Score: " + score) }
 }
