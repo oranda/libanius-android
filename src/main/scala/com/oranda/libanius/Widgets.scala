@@ -18,7 +18,7 @@
 
 package com.oranda.libanius
 
-import android.widget.{TextView, Button}
+import android.widget.{LinearLayout, TextView, Button}
 import android.util.TypedValue
 import android.view.{View, Gravity, ViewGroup}
 import android.view.ViewGroup.LayoutParams
@@ -39,29 +39,19 @@ object Widgets extends AppDependencyAccess {
 
       val choiceButton = new Button(androidContext)
 
-      //val params = new LayoutParams(LayoutParams.MATCH_PARENT,
-      //    LayoutParams.WRAP_CONTENT)
-
       def calcPixelsForDp(dp: Int): Int =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp,
             androidContext.getResources.getDisplayMetrics).toInt
 
-      val params = new ViewGroup.MarginLayoutParams(LayoutParams.MATCH_PARENT,
-          LayoutParams.WRAP_CONTENT)
-      params.setMargins(0, 0, 0, calcPixelsForDp(18))
+      val params = new LinearLayout.LayoutParams( LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT );
+      params.setMargins(0, 0, 0, calcPixelsForDp(25))
       choiceButton.setLayoutParams(params)
-
-
-      //  val marginParams = new ViewGroup.MarginLayoutParams(0, 0)
-      //  marginParams.setMargins(0, 0, 0, 18) // TODO: 18 should be dp not pixels
-      //  choiceButton.setLayoutParams(marginParams)
 
       choiceButton.setGravity(Gravity.CENTER)
       choiceButton.setTextColor(Color.BLACK)
-      choiceButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30)    // 20
+      choiceButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30)
       choiceButton.setBackgroundColor(Color.LTGRAY)
       choiceButton.setText(choiceValue)
-      choiceButton.setMinHeight(100) // TODO: remove this
 
       choiceButton
     }
