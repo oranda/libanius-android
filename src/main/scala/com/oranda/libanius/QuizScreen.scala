@@ -38,14 +38,12 @@ import com.oranda.libanius.model.quizgroup.{QuizGroup, QuizGroupHeader}
 import android.view.View.OnClickListener
 import android.util.TypedValue
 import android.view.inputmethod.EditorInfo
-import com.oranda.libanius.consoleui.Output._
 import com.oranda.libanius.actors.Message
 import scala.Some
 import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
 import com.oranda.libanius.actors.NoMessage
 import com.oranda.libanius.actors.CollectMessage
 import android.graphics.Color
-import scala.collection.immutable.ListMap
 
 class QuizScreen extends Activity with TypedActivity with Timestamps with AppDependencyAccess {
 
@@ -94,19 +92,16 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   def initGui() {
     setContentView(R.layout.quizscreen)
+    if (quiz == null) {
+      // Check that the quiz data has not been cleared from memory on a resume
+      quiz = LazyQuiz(Quiz(dataStore.loadAllQuizGroupsFromFilesDir))
+    }
     testUserWithQuizItem()
   }
 
   override def onPause() {
     super.onPause()
     saveQuiz
-  }
-
-  override def onResume() {
-    super.onResume()
-    // Check that the quiz data has not been cleared from memory on a resume
-    if (quiz == null)
-      quiz = LazyQuiz(Quiz(dataStore.loadAllQuizGroupsFromFilesDir))
   }
 
   def testUserWithQuizItem() {
@@ -150,10 +145,6 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
         }
       })
       responseInputArea.addView(choiceButton)
-      val spacer = new TextView(this)
-      spacer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15)
-      spacer.setText(" ")
-      responseInputArea.addView(spacer)
     }
   }
 
@@ -188,7 +179,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   
   def gotoOptions(v: View) {
     LibaniusActorSystem.sendQuizTo("OptionsScreen", quiz)
-    l.log("in QuizScreen, sending quiz")
+    l.log("in QuizScreen, sending quiz with active group headers " + quiz.quiz.activeQuizGroupHeaders)
     val optionsScreen = new Intent(getApplicationContext(), classOf[OptionsScreen])
     startActivity(optionsScreen)
   }
