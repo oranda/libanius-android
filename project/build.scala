@@ -49,6 +49,7 @@ object General {
       """.stripMargin
   )
 
+
   lazy val fullAndroidSettings =
     General.settings ++
     AndroidProject.androidSettings ++
