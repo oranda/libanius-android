@@ -275,9 +275,9 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   private[this] def processButtonResponse(currentQuizItem: QuizItemViewWithChoices,
       choiceButtons: List[Button], clickedButton: Button) {
     val userResponse = clickedButton.getText.toString
-    val userWasCorrect = currentQuizItem.quizItem.correctResponse.looselyMatches(userResponse)
-    processResponse(userResponse, userWasCorrect)
     updateUIAfterChoice(currentQuizItem, choiceButtons, clickedButton)
+    val userWasCorrect = currentQuizItem.quizItem.correctResponse.looselyMatches(userResponse)
+    updateModel(userResponse, userWasCorrect)
     pauseThenTestAgain(userWasCorrect)
   }
 
@@ -285,12 +285,12 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       userResponse: String) {
     val userWasCorrect = quiz.isCorrect(currentQuizItem.quizGroupHeader,
         currentQuizItem.prompt.value, userResponse)
-    processResponse(userResponse, userWasCorrect)
     updateUIAfterText(currentQuizItem, userWasCorrect)
+    updateModel(userResponse, userWasCorrect)
     pauseThenTestAgain(userWasCorrect)
   }
 
-  private[this] def processResponse(userResponse: String, userWasCorrect: Boolean) {
+  private[this] def updateModel(userResponse: String, userWasCorrect: Boolean) {
     updateTimestamps(userWasCorrect)
     Util.stopwatch(quiz = quiz.updateWithUserAnswer(userWasCorrect, currentQuizItem),
         "updateWithUserAnswer")
