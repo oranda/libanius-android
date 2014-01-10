@@ -79,13 +79,7 @@ object Widgets extends AppDependencyAccess {
   protected[libanius] def setColorsForButtons(choiceButtons: List[Button],
       prevOptionLabels: Seq[TextView], correctResponse: String, clickedButton: Button) {
 
-    l.log("setColorsForButtons, correctResponse: " + correctResponse)
-    l.log("setColorsForButtons, clickedButton: " + clickedButton.getText)
-    l.log("setColorsForButtons, choiceButtons length: " + choiceButtons.length)
-    l.log("setColorsForButtons, prevOptionLabels length: " + prevOptionLabels.length)
-
     choiceButtons.find(_.getText == correctResponse).foreach { correctButton =>
-      l.log("correctButton: " + correctButton.getText)
       choiceButtons.foreach { button =>
         setButtonColorOnResponse(button, correctButton, clickedButton)
       }
