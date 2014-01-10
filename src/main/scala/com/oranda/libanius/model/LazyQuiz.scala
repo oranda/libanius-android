@@ -31,6 +31,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ future, ExecutionContext }
 import ExecutionContext.Implicits.global
 import com.oranda.libanius.model.quizgroup.{QuizGroupHeader, QuizGroup, QuizGroupWithHeader}
+import com.oranda.libanius.util.Util
 
 
 /*
@@ -81,9 +82,10 @@ case class LazyQuiz(quiz: Quiz) extends AppDependencyAccess {
 
   def waitForQuizGroupsToLoad(quizGroupHeaders: Set[QuizGroupHeader]): LazyQuiz = {
     val loadedQuizGroups: Iterable[QuizGroupWithHeader] =
-        Await.result(Future.sequence(qgLoadingFutures), 10 seconds)
+        Util.stopwatch(Await.result(Future.sequence(qgLoadingFutures), 10 seconds),
+        "waiting for quiz groups to load")
     qgLoadingFutures = Set() // make sure the futures don't run again
-    fillQuizWithQuizGroups(loadedQuizGroups)
+    Util.stopwatch(fillQuizWithQuizGroups(loadedQuizGroups), "fillQuizWithQuizGroups")
   }
 
   def fillQuizWithQuizGroups(quizGroups: Iterable[QuizGroupWithHeader]): LazyQuiz =
