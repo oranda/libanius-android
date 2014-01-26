@@ -45,6 +45,6 @@
 
     <uses-sdk android:minSdkVersion="14"
               android:targetSdkVersion="14"/>
-    <!--  <uses-permission mobile:name="mobile.permission.WRITE_EXTERNAL_STORAGE" /> -->
+    <uses-permission android:name="android.permission.INTERNET"></uses-permission>
 </manifest>
 

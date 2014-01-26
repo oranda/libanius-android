@@ -7,16 +7,20 @@ object General {
 
   val settings = Defaults.defaultSettings ++ Seq (
     name := "Libanius",
-    version := "0.94",
-    versionCode := 940,
+    version := "0.95",
+    versionCode := 950,
     scalaVersion := "2.10.2",
     platformName in Android := "android-14",  // formerly android-8
     scalacOptions += "-deprecation",
+    javacOptions ++= Seq("-source", "1.6", "-target", "1.6"),
     parallelExecution in Test := false,
     resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
     libraryDependencies ++= Seq(       //"com.typesafe.config" % "config" % "0.3.0",
                                 "com.typesafe.akka" % "akka-actor_2.10" % "2.1.0",
-                                "org.scalaz" %% "scalaz-core" % "7.0.3"),
+                                "org.scalaz" %% "scalaz-core" % "7.0.3",
+                                "com.typesafe.play" %% "play-json" % "2.2.0-RC1",
+                                "com.fasterxml.jackson.core" % "jackson-databind" % "2.2.2",
+                                "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.2.2"),
     unmanagedClasspath in Runtime <+= (baseDirectory) map { bd => Attributed.blank(bd / "config") }
   )
 
@@ -25,11 +29,14 @@ object General {
   )
 
   val proguardOptions = Seq(
-    proguardOption in Android := 
+    proguardOption in Android :=
       """
         |-keep class com.typesafe.**
         |-keep class akka.**
+        |-keep class com.fasterxml.jackson.** { *; }
+        |
         |-keep class scala.collection.immutable.StringLike {*;}
+        |
         |-keepclasseswithmembers class * {public <init>(java.lang.String, akka.actor.ActorSystem$Settings, akka.event.EventStream, akka.actor.Scheduler, akka.actor.DynamicAccess);}
         |-keepclasseswithmembers class * {public <init>(akka.actor.ExtendedActorSystem);}
         |-keep class scala.collection.SeqLike {public protected *;}

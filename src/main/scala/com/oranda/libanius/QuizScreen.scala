@@ -116,6 +116,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     }
   }
 
+
   def testUserWithQuizItemAgain() {
     showScoreAsync() // The score takes a second to calculate, so do it in the background
     showSpeed()
@@ -174,9 +175,9 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
         currentQuizItem.quizGroupHeader)
     quiz = newQuiz
     if (wasRemoved) printStatus("Deleted word " + currentQuizItem.prompt)
-    testUserWithQuizItemAgain()    
+    testUserWithQuizItemAgain()
   }
-  
+
   def gotoOptions(v: View) {
     LibaniusActorSystem.sendQuizTo("OptionsScreen", quiz)
     l.log("in QuizScreen, sending quiz with active group headers " + quiz.quiz.activeQuizGroupHeaders)
@@ -293,7 +294,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   private[this] def updateModel(userResponse: String, userWasCorrect: Boolean) {
     updateTimestamps(userWasCorrect)
     Util.stopwatch(quiz = quiz.updateWithUserAnswer(userWasCorrect, currentQuizItem),
-        "updateWithUserAnswer")
+        "updating quiz with the user answer")
   }
 
   private[this] def pauseThenTestAgain(userWasCorrect: Boolean) {
@@ -311,7 +312,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
      * but we need to remind Android to use the UI thread when the result is returned.
      */
     future {
-      Util.stopwatch(quiz.scoreSoFar, "scoreSoFar")
+      Util.stopwatch(quiz.scoreSoFar, "calculating score")
     } map { scoreSoFar: BigDecimal =>
       runOnUiThread(new Runnable { override def run() {
         printScore(StringUtil.formatScore(scoreSoFar)) }
