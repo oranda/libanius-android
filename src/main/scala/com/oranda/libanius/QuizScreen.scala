@@ -33,8 +33,8 @@ import com.oranda.libanius.util.{StringUtil, Util}
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import com.oranda.libanius.model.{Quiz, LazyQuiz}
 import com.oranda.libanius.mobile.Timestamps
-import com.oranda.libanius.mobile.actors.{LibaniusActorSystem}
-import com.oranda.libanius.model.quizgroup.{QuizGroup, QuizGroupHeader}
+import com.oranda.libanius.mobile.actors.LibaniusActorSystem
+import com.oranda.libanius.model.quizgroup.QuizGroupHeader
 import android.view.View.OnClickListener
 import android.util.TypedValue
 import android.view.inputmethod.EditorInfo
@@ -104,6 +104,11 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     saveQuiz
   }
 
+  private[this] def saveQuiz() {
+    try { showStatus("Saving quiz data...") } catch { case e: Exception => /* ignore NPEs */ }
+    future { dataStore.saveQuiz(quiz) }
+  }
+
   def testUserWithQuizItem() {
     Util.stopwatch(quiz.findPresentableQuizItem, "find quiz items") match {
       case (Some((quizItem, qgWithHeader))) =>
@@ -112,10 +117,9 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
         quiz = quiz.addOrReplaceQuizGroup(qgWithHeader.header,
             qgWithHeader.quizGroup.updatedPromptNumber)
       case _ =>
-        printStatus("No more questions found! Done!")
+        showStatus("No more questions found! Done!")
     }
   }
-
 
   def testUserWithQuizItemAgain() {
     showScoreAsync() // The score takes a second to calculate, so do it in the background
@@ -174,13 +178,14 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     val (newQuiz: LazyQuiz, wasRemoved) = quiz.removeQuizItem(currentQuizItem.quizItem,
         currentQuizItem.quizGroupHeader)
     quiz = newQuiz
-    if (wasRemoved) printStatus("Deleted word " + currentQuizItem.prompt)
+    if (wasRemoved) showStatus("Deleted word " + currentQuizItem.prompt)
     testUserWithQuizItemAgain()
   }
 
   def gotoOptions(v: View) {
     LibaniusActorSystem.sendQuizTo("OptionsScreen", quiz)
-    l.log("in QuizScreen, sending quiz with active group headers " + quiz.quiz.activeQuizGroupHeaders)
+    l.log("in QuizScreen, sending quiz with active group headers " +
+        quiz.quiz.activeQuizGroupHeaders)
     val optionsScreen = new Intent(getApplicationContext(), classOf[OptionsScreen])
     startActivity(optionsScreen)
   }
@@ -192,8 +197,13 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     Widgets.setColorsForButtons(choiceButtons, findPrevOptionLabels, correctResp, clickedButton)
   }
 
+  private[this] def optionalIsCompleteText(quizItemComplete: Boolean): String =
+    if (quizItemComplete)
+        " (correct " + conf.numCorrectAnswersRequired + " times -- COMPLETE)"
+    else ""
+
   private[this] def updateUIAfterText(currentQuizItem: QuizItemViewWithChoices,
-      userWasCorrect: Boolean) {
+      userWasCorrect: Boolean, quizItemComplete: Boolean) {
     updatePrevOptionArea(currentQuizItem)
 
     val feedbackText = new TextView(this)
@@ -202,17 +212,16 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
     if (userWasCorrect) {
       feedbackText.setTextColor(Color.GREEN)
-      feedbackText.setText("\nCorrect!\n")
+      feedbackText.setText("Correct! " + optionalIsCompleteText(quizItemComplete))
     } else {
       feedbackText.setTextColor(Color.RED)
-      feedbackText.setText("\nWrong! It's " + currentQuizItem.quizItem.correctResponse + "\n")
+      feedbackText.setText("Wrong! It's " + currentQuizItem.quizItem.correctResponse)
     }
     responseInputArea.addView(feedbackText)
 
     val correctResp = currentQuizItem.quizItem.correctResponse.value
     Widgets.setColorsForPrevOptions(findPrevOptionLabels, correctResp)
   }
-
 
   private[this] def updatePrevOptionArea(currentQuizItem: QuizItemViewWithChoices) {
     addPrevQuestionLabel(currentQuizItem)
@@ -238,11 +247,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   }
 
   private[this] def addPrevQuestionLabel(currentQuizItem: QuizItemViewWithChoices) {
-    val maxAnswers = conf.numCorrectAnswersRequired
     val prevQuestionText = "PREV: " + questionLabel.getText +
-        (if (currentQuizItem.numCorrectAnswersInARow == maxAnswers)
-           " (correct " + maxAnswers + " times -- COMPLETE)"
-        else "")
+        optionalIsCompleteText(currentQuizItem.isComplete)
     val prevQuestionLabel = Widgets.constructPrevLabel(this, prevQuestionText)
     prevQuestionArea.removeAllViews()
     prevQuestionArea.addView(prevQuestionLabel)
@@ -268,27 +274,27 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     responseOption + " = " + values.mkString(", ")
   }
 
-  private[this] def saveQuiz() {
-    printStatus("Saving quiz data...")
-    future { dataStore.saveQuiz(quiz) }
-  }
-
   private[this] def processButtonResponse(currentQuizItem: QuizItemViewWithChoices,
       choiceButtons: List[Button], clickedButton: Button) {
     val userResponse = clickedButton.getText.toString
     updateUIAfterChoice(currentQuizItem, choiceButtons, clickedButton)
     val userWasCorrect = currentQuizItem.quizItem.correctResponse.looselyMatches(userResponse)
     updateModel(userResponse, userWasCorrect)
-    pauseThenTestAgain(userWasCorrect)
+    pauseThenTestAgain(userWasCorrect, currentQuizItem.isComplete)
   }
 
   private[this] def processTextResponse(currentQuizItem: QuizItemViewWithChoices,
       userResponse: String) {
     val userWasCorrect = quiz.isCorrect(currentQuizItem.quizGroupHeader,
         currentQuizItem.prompt.value, userResponse)
-    updateUIAfterText(currentQuizItem, userWasCorrect)
+
+    // The UI is updated before the model for responsiveness.
+    val quizItemComplete = userWasCorrect &&
+        currentQuizItem.numCorrectAnswersInARow >= conf.numCorrectAnswersRequired - 1
+    updateUIAfterText(currentQuizItem, userWasCorrect, quizItemComplete)
     updateModel(userResponse, userWasCorrect)
-    pauseThenTestAgain(userWasCorrect)
+
+    pauseThenTestAgain(userWasCorrect, quizItemComplete)
   }
 
   private[this] def updateModel(userResponse: String, userWasCorrect: Boolean) {
@@ -297,10 +303,10 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
         "updating quiz with the user answer")
   }
 
-  private[this] def pauseThenTestAgain(userWasCorrect: Boolean) {
+  private[this] def pauseThenTestAgain(userWasCorrect: Boolean, quizItemComplete: Boolean) {
     val delayMillis =
       if (currentQuizItem.useMultipleChoice) if (userWasCorrect) 50 else 300
-      else if (userWasCorrect) 400 else 1800
+      else if (userWasCorrect && !quizItemComplete) 400 else 1800
 
     val handler = new Handler
     handler.postDelayed(new Runnable() { def run() = testUserWithQuizItemAgain() }, delayMillis)
@@ -315,13 +321,12 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       Util.stopwatch(quiz.scoreSoFar, "calculating score")
     } map { scoreSoFar: BigDecimal =>
       runOnUiThread(new Runnable { override def run() {
-        printScore(StringUtil.formatScore(scoreSoFar)) }
-      })
+        showScore(StringUtil.formatScore(scoreSoFar))
+      }})
     }
   }
 
-  def showSpeed() { speedLabel.setText("Speed: " + answerSpeed + "/min") }
-
-  def printStatus(text: String) { statusLabel.setText(text) }
-  def printScore(score: String) { statusLabel.setText("Score: " + score) }
+  private[this] def showSpeed() { speedLabel.setText("Speed: " + answerSpeed + "/min") }
+  private[this] def showScore(score: String) { showStatus("Score: " + score) }
+  private[this] def showStatus(text: String) { statusLabel.setText(text) }
 }
