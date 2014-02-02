@@ -1,3 +1,8 @@
+== 0.951 February 2 2014
+
+  * Minor stability fixes including more judicious use of streams in the underlying library.
+
+
 == 0.95 January 26 2014
 
   * Added remote dictionary search, i.e. REST querying of mymemory.translated.net.
