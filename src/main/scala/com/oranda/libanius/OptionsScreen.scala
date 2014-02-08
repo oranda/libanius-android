@@ -50,8 +50,7 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
   private[this] lazy val searchInputBox: EditText = findView(TR.searchInput)
   private[this] lazy val searchResultsLayout: LinearLayout = findView(TR.searchResultsLayout)
 
-
-  private[this] lazy val status: TextView = findView(TR.status)
+  private[this] lazy val statusLabel: TextView = findView(TR.status)
 
   private[this] var checkBoxes = Map[CheckBox, QuizGroupHeader]()
 
@@ -88,6 +87,16 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     setContentView(R.layout.optionsscreen)
     addQuizGroupCheckBoxes()
     prepareSearchUi()
+  }
+
+  override def onPause() {
+    super.onPause()
+    saveQuiz
+  }
+
+  private[this] def saveQuiz() {
+    try { showStatus("Saving quiz data...") } catch { case e: Exception => /* ignore NPEs */ }
+    future { dataStore.saveQuiz(quiz) }
   }
 
   def addQuizGroupCheckBoxes() {
@@ -162,12 +171,11 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
   def findAndShowResultsAsync() {
     clearResults()
     Widgets.closeOnscreenKeyboard(this, searchInputBox.getWindowToken)
-
     getQuizReady()
     val searchInput = searchInputBox.getText.toString
 
     l.log("Searching for results for " + searchInput)
-    status.setText("Searching locally and remotely...")
+    showStatus("Searching locally and remotely...")
 
     val searchLocal = future {
       Util.stopwatch(quiz.searchLocalDictionary(searchInput), "search local dictionary")
@@ -177,11 +185,11 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
       Util.stopwatch(quiz.searchRemoteDictionary(searchInput), "search remote dictionary")
     }
 
-    def showResults(searchResults: List[SearchResult], maxResults: Int) {
-      runOnUiThread { showSearchResults(searchResults.slice(0, maxResults)) }
+    def showResults(searchResults: SearchResultsContainer, maxResults: Int) {
+      runOnUiThread { showSearchResults(searchResults.results.slice(0, maxResults)) }
     }
 
-    def setStatus(text: String) = runOnUiThread { status.setText(text) }
+    def setStatus(text: String) = runOnUiThread { showStatus(text) }
 
     searchLocal map {
       searchResultsLocal =>
@@ -189,14 +197,18 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
         setStatus("Searching remotely...")
         searchRemote map { searchResultsRemote =>
           showResults(searchResultsRemote, 1)
-          if (searchResultsLocal.isEmpty && searchResultsRemote.isEmpty)
+          val allSearchResults = SearchResultsContainer.combine(
+              List(searchResultsLocal, searchResultsRemote))
+          if (allSearchResults.failed)
+            setStatus(allSearchResults.getErrorMessage)
+          else if (allSearchResults.isEmpty)
             setStatus("No results found")
         }
     }
   }
 
   private[this] def showSearchResults(searchResults: List[SearchResult]) {
-    status.setText("")
+    clearStatus()
     for (searchResult <- searchResults)
       addRow(searchResult)
   }
@@ -248,11 +260,14 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     val cleanedKeyWord = clean(keyWord)
     val cleanedValue = clean(value)
     quiz = quiz.addQuizItemToFrontOfTwoGroups(quizGroupHeader, cleanedKeyWord, cleanedValue)
-    status.setText(cleanedKeyWord + " - " + cleanedValue + " added to front of quiz")
+    showStatus(cleanedKeyWord + " - " + cleanedValue + " added to front of quiz")
   }
 
   private[this] def clearResults() {
-    status.setText("")
+    clearStatus()
     searchResultsLayout.removeAllViews()
   }
+
+  private[this] def showStatus(text: String) { statusLabel.setText(text) }
+  private[this] def clearStatus() { showStatus("") }
 }
