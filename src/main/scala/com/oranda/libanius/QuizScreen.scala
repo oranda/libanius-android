@@ -170,8 +170,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     })
     responseInputArea.addView(responseTextBox)
     responseTextBox.setGravity(Gravity.TOP)
+    Widgets.showOnscreenKeyboard(this)
     responseTextBox.setSelected(true)
-    Widgets.showOnscreenKeyboard(this, quizView)
   }
 
   def removeCurrentWord(v: View) {
