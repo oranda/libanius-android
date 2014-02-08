@@ -116,14 +116,15 @@ object Widgets extends AppDependencyAccess {
   }
 
   protected[libanius] def closeOnscreenKeyboard(ctx: Context, windowToken: IBinder) {
-    val inputMethodService = ctx.getSystemService(Context.INPUT_METHOD_SERVICE).
-        asInstanceOf[InputMethodManager]
-    inputMethodService.hideSoftInputFromWindow(windowToken, 0)
+    inputMethodService(ctx).hideSoftInputFromWindow(windowToken, 0)
   }
 
-  protected[libanius] def showOnscreenKeyboard(ctx: Context, view: View) {
-    val inputMethodService = ctx.getSystemService(Context.INPUT_METHOD_SERVICE).
-        asInstanceOf[InputMethodManager]
-    inputMethodService.showSoftInput(view, 0)
+  protected[libanius] def showOnscreenKeyboard(ctx: Context) {
+    inputMethodService(ctx).toggleSoftInput(0, 0)
   }
+
+  private[this] def inputMethodService(ctx: Context) =
+    ctx.getSystemService(Context.INPUT_METHOD_SERVICE).asInstanceOf[InputMethodManager]
+
+
 }
