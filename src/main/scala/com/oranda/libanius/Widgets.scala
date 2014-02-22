@@ -125,6 +125,4 @@ object Widgets extends AppDependencyAccess {
 
   private[this] def inputMethodService(ctx: Context) =
     ctx.getSystemService(Context.INPUT_METHOD_SERVICE).asInstanceOf[InputMethodManager]
-
-
 }

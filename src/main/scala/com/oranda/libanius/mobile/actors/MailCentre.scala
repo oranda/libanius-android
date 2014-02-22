@@ -19,7 +19,7 @@
 package com.oranda.libanius.mobile.actors
 
 import akka.actor.{Actor}
-import com.oranda.libanius.actors.{NoMessage, Message, DropMessage, CollectMessage}
+import com.oranda.libanius.mobile.actors._
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import scala.collection.mutable
 
@@ -38,7 +38,7 @@ class MailCentre extends Actor with AppDependencyAccess {
     case CollectMessage(requesterName, listenerRef) =>
       l.log("MailCentre.CollectMessage, requester is " + requesterName)
       listenerRef ! (messages.get(requesterName) match {
-        case Some(obj) => Message(obj)
+        case Some(obj) => ObjectMessage(obj)
         case _ => NoMessage()
       })
   }

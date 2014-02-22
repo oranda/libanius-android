@@ -19,17 +19,27 @@
 package com.oranda.libanius.mobile.actors
 
 import akka.actor.{Props, ActorSystem}
-import com.oranda.libanius.model.{LazyQuiz}
-import com.oranda.libanius.actors.{DropMessage}
+import com.oranda.libanius.model.{Quiz, LazyQuiz}
 import com.oranda.libanius.dependencies.AppDependencyAccess
 
 object LibaniusActorSystem extends AppDependencyAccess {
   val system: ActorSystem = ActorSystem("LibaniusActorSystem")
+  /*
+  val appActorEventBus = new LibaniusActorEventBus
+  val QUIZ_CHANNEL = "/data_objects/quiz"
+  */
+
   val mailCentre = LibaniusActorSystem.system.actorOf(Props(new MailCentre), "MailCentre")
 
   def sendQuizTo(recipientName: String, quiz: LazyQuiz) {
     mailCentre ! DropMessage(recipientName, quiz)
   }
+  /*
+  def sendQuiz(quiz: LazyQuiz) {
+    l.log("LibaniusActorSystem.sendQuiz " + quiz.numQuizItems)
+    appActorEventBus.publish(MessageEvent(QUIZ_CHANNEL, QuizMessage(quiz = quiz)))
+  }
+  */
 }
 
 

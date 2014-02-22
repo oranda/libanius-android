@@ -1,5 +1,5 @@
 /*
- * Libanius-Android
+ * Libanius
  * Copyright (C) 2012-2014 James McCabe <james@oranda.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,14 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.oranda.libanius.actors
+package com.oranda.libanius.mobile.actors
 
 import akka.actor.ActorRef
 
 sealed trait ActorMessage
 object ActorMessage
 
-case class Message[T](message: T) extends ActorMessage
+/*
+ * The two main types of actor messages here are:
+ * 1. MailMessage: a message intended for a certain recipient (who may not exist yet)
+ * 2. EventBusMessage: a message to be put on a channel that any actor can subscribe to
+ */
+class MailMessage(val recipientName: String) extends ActorMessage
+case class ObjectMessage[T](message: T) extends ActorMessage
+case class DropMessage(override val recipientName: String, message: Any)
+  extends MailMessage(recipientName)
+case class CollectMessage(override val recipientName: String, listenerRef: ActorRef)
+  extends MailMessage(recipientName)
+
 case class NoMessage() extends ActorMessage
-case class DropMessage(recipientName: String, message: Any) extends ActorMessage
-case class CollectMessage(recipientName: String, listenerRef: ActorRef) extends ActorMessage
+
+class EventBusMessage(val id: String, val timestamp: Long) extends ActorMessage

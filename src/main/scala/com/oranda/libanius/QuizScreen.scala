@@ -33,21 +33,19 @@ import com.oranda.libanius.util.{StringUtil, Util}
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import com.oranda.libanius.model.{Quiz, LazyQuiz}
 import com.oranda.libanius.mobile.Timestamps
-import com.oranda.libanius.mobile.actors.LibaniusActorSystem
+import com.oranda.libanius.mobile.actors._
 import com.oranda.libanius.model.quizgroup.QuizGroupHeader
 import android.view.View.OnClickListener
 import android.util.TypedValue
 import android.view.inputmethod.EditorInfo
-import com.oranda.libanius.actors.Message
-import scala.Some
 import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
-import com.oranda.libanius.actors.NoMessage
-import com.oranda.libanius.actors.CollectMessage
 import android.graphics.Color
+import LibaniusActorSystem._
+import scala.Some
+import com.oranda.libanius.mobile.actors.NoMessage
 
 class QuizScreen extends Activity with TypedActivity with Timestamps with AppDependencyAccess {
 
-  private[this] lazy val quizView: LinearLayout = findView(TR.quizView)
   private[this] lazy val questionLabel: TextView = findView(TR.question)
   private[this] lazy val questionNotesLabel: TextView = findView(TR.questionNotes)
 
@@ -58,11 +56,37 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] lazy val speedLabel: TextView = findView(TR.speed)
 
-  private[this] lazy val statusLabel: TextView = findView(TR.status)
+  private[this] lazy implicit val statusLabel: TextView = findView(TR.status)
 
   private[this] var currentQuizItem: QuizItemViewWithChoices = _
 
-  private[this] var quiz: LazyQuiz = _  // set in onCreate
+  private[this] var quiz: LazyQuiz = LazyQuiz(Quiz())  // set in onCreate
+
+  /*
+  override def onCreate(savedInstanceState: Bundle) {
+    super.onCreate(savedInstanceState)
+
+    l.log("QuizScreen: onCreate ")
+
+    val subscriber = system.actorOf(Props(new Actor {
+      def receive = {
+        case MessageEvent(QUIZ_CHANNEL, QuizMessage(_, _, quizReceived)) =>
+          l.log("QuizScreen received quiz " + quizReceived.numQuizItems + " and sets it")
+          quiz = quizReceived
+          appActorEventBus.unsubscribe(self, QUIZ_CHANNEL)
+          l.log("QuizScreen unsubscribed from QUIZ_CHANNEL")
+          runOnUiThread { testUserWithQuizItem() }
+        case _ =>
+          l.log("QuizScreen received something strange")
+      }
+    }))
+
+    setContentView(R.layout.quizscreen)
+
+    LibaniusActorSystem.appActorEventBus.subscribe(subscriber, QUIZ_CHANNEL)
+  }
+*/
+
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -73,9 +97,9 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     LibaniusActorSystem.mailCentre ! CollectMessage(recipientName,
       actor(new Act {
         become {
-          case Message(quizReceived: LazyQuiz) =>
+          case ObjectMessage(quizReceived: LazyQuiz) =>
             l.log("received quiz with numItems " + quizReceived.numQuizItems +
-                " and setting it in QuizScreen")
+              " and setting it in QuizScreen")
             quiz = quizReceived
             runGuiOnUiThread()
           case NoMessage() =>
@@ -186,7 +210,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     LibaniusActorSystem.sendQuizTo("OptionsScreen", quiz)
     l.log("in QuizScreen, sending quiz with active group headers " +
         quiz.quiz.activeQuizGroupHeaders)
-    val optionsScreen = new Intent(getApplicationContext(), classOf[OptionsScreen])
+    val optionsScreen = new Intent(getApplicationContext, classOf[OptionsScreen])
     startActivity(optionsScreen)
   }
 
@@ -305,7 +329,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] def pauseThenTestAgain(userWasCorrect: Boolean, quizItemComplete: Boolean) {
     val delayMillis =
-      if (currentQuizItem.useMultipleChoice) if (userWasCorrect) 50 else 300
+      if (currentQuizItem.useMultipleChoice) { if (userWasCorrect) 50 else 300 }
       else if (userWasCorrect && !quizItemComplete) 400 else 1800
 
     val handler = new Handler
@@ -328,5 +352,4 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] def showSpeed() { speedLabel.setText("Speed: " + answerSpeed + "/min") }
   private[this] def showScore(score: String) { showStatus("Score: " + score) }
-  private[this] def showStatus(text: String) { statusLabel.setText(text) }
 }
