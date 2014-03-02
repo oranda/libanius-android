@@ -2,6 +2,10 @@
 
   * Separated out DictionarySearch into its own class.
 
+  * Introduced Akka Event Bus to send addition events from the dictionary to the quiz.
+
+  * Incorporated response success tracking from libanius-core.
+
 
 == 0.951 February 2 2014
 

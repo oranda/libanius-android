@@ -38,11 +38,13 @@ import scala.util.Success
 import scala.concurrent.{future, ExecutionContext}
 import ExecutionContext.Implicits.global
 import android.content.Context
+import com.oranda.libanius.mobile.actors.LibaniusActorSystem
+import com.oranda.libanius.model.quizitem.QuizItem
 
 
 class DictionarySearch(quiz: Quiz, searchInput: String,
     implicit val statusLabel: TextView, searchResultsLayout: LinearLayout,
-    widgetFactory: WidgetFactory, addWordToQuiz: (QuizGroupHeader, String, String) => Unit)
+    widgetFactory: WidgetFactory)
   extends Activity with AppDependencyAccess {
 
   import DictionarySearch._
@@ -76,7 +78,6 @@ class DictionarySearch(quiz: Quiz, searchInput: String,
     case _: IOException => "Error accessing data"
     case _ => "Unknown error"
   }
-
 
   private[this] def showResults(results: Try[List[SearchResult]], maxResults: Int) {
     runOnUiThread {
@@ -134,7 +135,10 @@ class DictionarySearch(quiz: Quiz, searchInput: String,
     val cleanedKeyWord = clean(keyWord)
     val cleanedValue = clean(value)
     btnTag.setOnClickListener(new OnClickListener() {
-      def onClick(view: View) { addWordToQuiz(quizGroupHeader, cleanedKeyWord, cleanedValue) }
+      def onClick(view: View) {
+        val newQuizItem = QuizItem(cleanedKeyWord, cleanedValue)
+        LibaniusActorSystem.sendQuizItem(quizGroupHeader, newQuizItem)
+      }
     })
     btnTag
   }

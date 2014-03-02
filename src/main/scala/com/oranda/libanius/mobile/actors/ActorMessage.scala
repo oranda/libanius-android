@@ -19,12 +19,16 @@
 package com.oranda.libanius.mobile.actors
 
 import akka.actor.ActorRef
+import com.oranda.libanius.model.quizgroup.QuizGroupHeader
+import com.oranda.libanius.model.quizitem.QuizItem
+import java.util.{Date, UUID}
 
 sealed trait ActorMessage
 object ActorMessage
 
 /*
- * The two main types of actor messages here are:
+ * The two main types of actor messages in Libanius are:
+ *
  * 1. MailMessage: a message intended for a certain recipient (who may not exist yet)
  * 2. EventBusMessage: a message to be put on a channel that any actor can subscribe to
  */
@@ -37,4 +41,8 @@ case class CollectMessage(override val recipientName: String, listenerRef: Actor
 
 case class NoMessage() extends ActorMessage
 
-class EventBusMessage(val id: String, val timestamp: Long) extends ActorMessage
+class EventBusMessage(val id: String = UUID.randomUUID().toString(),
+    val timestamp: Long = new Date().getTime()) extends ActorMessage
+
+case class NewQuizItemMessage(header: QuizGroupHeader, quizItem: QuizItem)
+  extends EventBusMessage

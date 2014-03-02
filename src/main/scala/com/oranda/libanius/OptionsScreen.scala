@@ -40,6 +40,7 @@ import com.oranda.libanius.model.quizgroup.QuizGroupHeader
 import scala.concurrent.{future, ExecutionContext}
 import ExecutionContext.Implicits.global
 import LibaniusActorSystem._
+import com.oranda.libanius.model.quizitem.QuizItem
 
 class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess {
 
@@ -73,35 +74,19 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
         }
       })
     )
+
+    val subscriber = system.actorOf(Props(new Actor {
+      def receive = {
+        case EventBusMessageEvent(QUIZ_ITEM_CHANNEL, NewQuizItemMessage(qgh, quizItem)) =>
+          l.log("OptionsScreen received quizItem " + quizItem + " and adds it to the quiz")
+          addItemToQuiz(qgh, quizItem)
+        case x =>
+          l.log(s"OptionsScreen received something strange: $x")
+      }
+    }))
+
+    LibaniusActorSystem.appActorEventBus.subscribe(subscriber, QUIZ_ITEM_CHANNEL)
   }
-
-  /*
-  val subscriber = system.actorOf(Props(new Actor {
-    def receive = {
-      case MessageEvent(QUIZ_CHANNEL, QuizMessage(_, _, quizReceived)) =>
-        l.log("OptionsScreen received quiz " + quizReceived.numQuizItems + " and sets it")
-        quiz = quizReceived
-        l.log("OptionsScreen unsubscribed from QUIZ_CHANNEL")
-      case x =>
-        l.log(s"OptionsScreen received something strange: $x")
-    }
-  }))
-
-  override def onCreate(savedInstanceState: Bundle) {
-    super.onCreate(savedInstanceState)
-
-    l.log("OptionsScreen: onCreate ")
-
-
-    LibaniusActorSystem.appActorEventBus.subscribe(subscriber, QUIZ_CHANNEL)
-  }
-
-  override def onStart() {
-    super.onStart()
-    l.log("OptionsScreen: onStart")
-    runOnUiThread { initGui() }
-  }
-  */
 
   def runGuiOnUiThread() {
     runOnUiThread { initGui() }
@@ -172,16 +157,6 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
       l.log("in OptionsScreen: sending quiz")
       val intent = new Intent(getBaseContext(), classOf[QuizScreen])
       startActivity(intent)
-      /*
-      val intent = new Intent(getBaseContext(), classOf[QuizScreen])
-      startActivity(intent)
-      l.log("started QuizScreen activity... getting quiz ready to send")
-      getQuizReady()
-      l.log("in OptionsScreen, sending quiz")
-      // Unsubscribe QuizScreen, and assume OptionScreen is subscribed to quiz messages
-      appActorEventBus.unsubscribe(subscriber, QUIZ_CHANNEL)
-      LibaniusActorSystem.sendQuiz(quiz)
-      */
     }
   }
 
@@ -208,14 +183,16 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     getQuizReady()
     val searchInput = searchInputBox.getText.toString
     val dictionarySearch = new DictionarySearch(quiz, searchInput, statusLabel,
-        searchResultsLayout, new WidgetFactory(this), addWordToQuiz)
+        searchResultsLayout, new WidgetFactory(this))
     dictionarySearch.findAndShowResultsAsync()
   }
 
-  private[this] def addWordToQuiz(quizGroupHeader: QuizGroupHeader, keyWord: String,
-      value: String) {
-    quiz = quiz.addQuizItemToFrontOfTwoGroups(quizGroupHeader, keyWord, value)
-    showStatus(keyWord + " - " + value + " added to front of quiz")
+  private[this] def addItemToQuiz(quizGroupHeader: QuizGroupHeader, quizItem: QuizItem) {
+    l.log("addItemToQuiz " + quizItem)
+    quiz = quiz.addQuizItemToFrontOfTwoGroups(quizGroupHeader,
+        quizItem.prompt.value, quizItem.correctResponse.value)
+    val quizItemText = quizItem.prompt.value + " - " + quizItem.correctResponse.value
+    runOnUiThread { showStatus(quizItemText + " added to front of quiz") }
   }
 
   private[this] def clearResults() {

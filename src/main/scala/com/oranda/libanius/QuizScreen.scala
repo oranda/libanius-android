@@ -31,7 +31,7 @@ import ExecutionContext.Implicits.global
 
 import com.oranda.libanius.util.{StringUtil, Util}
 import com.oranda.libanius.dependencies.AppDependencyAccess
-import com.oranda.libanius.model.{Quiz, LazyQuiz}
+import com.oranda.libanius.model.{Criteria, Quiz, LazyQuiz}
 import com.oranda.libanius.mobile.Timestamps
 import com.oranda.libanius.mobile.actors._
 import com.oranda.libanius.model.quizgroup.QuizGroupHeader
@@ -223,7 +223,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] def optionalIsCompleteText(quizItemComplete: Boolean): String =
     if (quizItemComplete)
-        " (correct " + conf.numCorrectAnswersRequired + " times -- COMPLETE)"
+        " (correct " + Criteria.numCorrectResponsesRequired + " times -- COMPLETE)"
     else ""
 
   private[this] def updateUIAfterText(currentQuizItem: QuizItemViewWithChoices,
@@ -314,7 +314,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
     // The UI is updated before the model for responsiveness.
     val quizItemComplete = userWasCorrect &&
-        currentQuizItem.numCorrectAnswersInARow >= conf.numCorrectAnswersRequired - 1
+        currentQuizItem.numCorrectAnswersInARow >= Criteria.numCorrectResponsesRequired - 1
     updateUIAfterText(currentQuizItem, userWasCorrect, quizItemComplete)
     updateModel(userResponse, userWasCorrect)
 
