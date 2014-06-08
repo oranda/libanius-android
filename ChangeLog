@@ -1,3 +1,8 @@
+== 0.97 June 2014
+
+  * Incorporated adaptation to user performance from libanius-core.
+
+
 == 0.96 March 2 2014
 
   * Separated out DictionarySearch into its own class.

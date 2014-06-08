@@ -31,7 +31,7 @@ import ExecutionContext.Implicits.global
 
 import com.oranda.libanius.util.{StringUtil, Util}
 import com.oranda.libanius.dependencies.AppDependencyAccess
-import com.oranda.libanius.model.{Criteria, Quiz, LazyQuiz}
+import com.oranda.libanius.model.{Quiz, LazyQuiz}
 import com.oranda.libanius.mobile.Timestamps
 import com.oranda.libanius.mobile.actors._
 import com.oranda.libanius.model.quizgroup.QuizGroupHeader
@@ -155,9 +155,9 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
     questionLabel.setText(currentQuizItem.prompt.toString)
     var questionNotesText = "What is the " + currentQuizItem.responseType + "?"
-    if (currentQuizItem.numCorrectAnswersInARow > 0)
+    if (currentQuizItem.numCorrectResponsesInARow > 0)
       questionNotesText += " (answered right " +
-          currentQuizItem.numCorrectAnswersInARow + " times)"
+          currentQuizItem.numCorrectResponsesInARow + " times)"
     questionNotesLabel.setText(questionNotesText)
     if (currentQuizItem.useMultipleChoice) presentChoiceButtons(currentQuizItem)
     else showTextBoxAndGetInput(currentQuizItem)
@@ -221,10 +221,9 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     Widgets.setColorsForButtons(choiceButtons, findPrevOptionLabels, correctResp, clickedButton)
   }
 
-  private[this] def optionalIsCompleteText(quizItemComplete: Boolean): String =
-    if (quizItemComplete)
-        " (correct " + Criteria.numCorrectResponsesRequired + " times -- COMPLETE)"
-    else ""
+  private[this] def optionalIsCompleteText(itemComplete: Boolean,
+      numCorrectResponsesRequired: Int): String =
+    if (itemComplete)  " (correct " + numCorrectResponsesRequired + " times -- COMPLETE)" else ""
 
   private[this] def updateUIAfterText(currentQuizItem: QuizItemViewWithChoices,
       userWasCorrect: Boolean, quizItemComplete: Boolean) {
@@ -236,7 +235,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
     if (userWasCorrect) {
       feedbackText.setTextColor(Color.GREEN)
-      feedbackText.setText("Correct! " + optionalIsCompleteText(quizItemComplete))
+      feedbackText.setText("Correct! " +
+          optionalIsCompleteText(quizItemComplete, currentQuizItem.numCorrectResponsesRequired))
     } else {
       feedbackText.setTextColor(Color.RED)
       feedbackText.setText("Wrong! It's " + currentQuizItem.quizItem.correctResponse)
@@ -272,7 +272,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] def addPrevQuestionLabel(currentQuizItem: QuizItemViewWithChoices) {
     val prevQuestionText = "PREV: " + questionLabel.getText +
-        optionalIsCompleteText(currentQuizItem.isComplete)
+        optionalIsCompleteText(currentQuizItem.isComplete,
+        currentQuizItem.numCorrectResponsesRequired)
     val prevQuestionLabel = Widgets.constructPrevLabel(this, prevQuestionText)
     prevQuestionArea.removeAllViews()
     prevQuestionArea.addView(prevQuestionLabel)
@@ -314,7 +315,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
     // The UI is updated before the model for responsiveness.
     val quizItemComplete = userWasCorrect &&
-        currentQuizItem.numCorrectAnswersInARow >= Criteria.numCorrectResponsesRequired - 1
+        currentQuizItem.numCorrectResponsesInARow >=
+        currentQuizItem.numCorrectResponsesRequired - 1
     updateUIAfterText(currentQuizItem, userWasCorrect, quizItemComplete)
     updateModel(userResponse, userWasCorrect)
 
