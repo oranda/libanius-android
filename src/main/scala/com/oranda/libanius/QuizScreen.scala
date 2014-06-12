@@ -138,8 +138,6 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       case (Some((quizItem, qgWithHeader))) =>
         currentQuizItem = quizItem
         showNextQuizItem(currentQuizItem)
-        quiz = quiz.addOrReplaceQuizGroup(qgWithHeader.header,
-            qgWithHeader.quizGroup.updatedPromptNumber)
       case _ =>
         showStatus("No more questions found! Done!")
     }
