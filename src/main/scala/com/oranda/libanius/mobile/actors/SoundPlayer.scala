@@ -30,43 +30,46 @@ class SoundPlayer(implicit ctx: Context) extends Actor with AppDependencyAccess 
   private[this] val audioManager: AudioManager =
     ctx.getApplicationContext.getSystemService(Context.AUDIO_SERVICE).asInstanceOf[AudioManager]
   private[this] val soundPool: SoundPool = new SoundPool(10, AudioManager.STREAM_MUSIC, 0)
-  private[this] var soundPoolMap = Map[SoundSample, Int]()
-  private[this] var correctSoundLoaded = false
-  private[this] var incorrectSoundLoaded = false
+  private[this] var soundPoolMap = Map[SoundSampleName, SoundSampleData]()
 
   override def receive = {
-    case Load() =>
-      loadSound()
-    case Play(soundSample: SoundSample) =>
-      val curVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-      soundPool.play(soundPoolMap(soundSample), curVolume, curVolume, 1,  0, 1f)
-    case _ =>
-      l.logError("SoundPlayer received an unknown command")
+    case Load() => loadSounds()
+    case Play(soundSampleId: SoundSampleName) => play(soundSampleId)
+    case _ => l.logError("SoundPlayer received an unknown command")
   }
 
-  def loadSound() {
-    soundPoolMap += (CORRECT -> soundPool.load(ctx, R.raw.correct0, 1))
-    soundPoolMap += (INCORRECT -> soundPool.load(ctx, R.raw.incorrect0, 1))
+  def loadSounds() {
     soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener {
       def onLoadComplete(soundPool: SoundPool, sampleId: Int, status: Int) {
-        sampleId match {
-          case R.raw.correct0 =>
-            correctSoundLoaded = true
-          case R.raw.incorrect0 =>
-            incorrectSoundLoaded = true
-          case _ =>
-            l.logError("sampleId not recognized: " + sampleId)
+        val soundSample = soundPoolMap.find(_._2.soundSample == sampleId) foreach {
+          case Some((name: SoundSampleName, data: SoundSampleData)) =>
+            soundPoolMap += (name -> data.setLoaded)
         }
       }
     })
+    soundPoolMap += (CORRECT -> soundPool.load(ctx, R.raw.correct0, 1))
+    soundPoolMap += (INCORRECT -> soundPool.load(ctx, R.raw.incorrect0, 1))
+  }
+
+  def play(soundSampleId: SoundSampleName) {
+    soundPoolMap.get(soundSampleId).foreach(soundSampleData =>
+      if (soundSampleData.isLoaded) {
+        val curVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        soundPool.play(soundSampleData.soundSample, curVolume, curVolume, 1, 0, 1f)
+      }
+    )
   }
 }
 
 object SoundPlayer {
   case class Load()
-  case class Play(soundSample: SoundSample)
+  case class Play(soundSample: SoundSampleName)
 
-  abstract class SoundSample()
-  case object CORRECT extends SoundSample
-  case object INCORRECT extends SoundSample
+  abstract class SoundSampleName
+  case object CORRECT extends SoundSampleName
+  case object INCORRECT extends SoundSampleName
+
+  case class SoundSampleData(soundSample: Integer, isLoaded: Boolean = false) {
+    def setLoaded = copy(isLoaded = true)
+  }
 }
