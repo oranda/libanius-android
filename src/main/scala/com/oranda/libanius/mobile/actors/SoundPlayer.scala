@@ -39,6 +39,8 @@ class SoundPlayer(implicit ctx: Context) extends Actor with AppDependencyAccess 
   }
 
   def loadSounds() {
+    soundPoolMap += (CORRECT -> SoundSampleData.load(R.raw.correct0))
+    soundPoolMap += (INCORRECT -> SoundSampleData.load(R.raw.incorrect0))
     soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener {
       def onLoadComplete(soundPool: SoundPool, sampleId: Int, status: Int) {
         val soundSample = soundPoolMap.find(_._2.soundSample == sampleId) foreach {
@@ -47,17 +49,15 @@ class SoundPlayer(implicit ctx: Context) extends Actor with AppDependencyAccess 
         }
       }
     })
-    soundPoolMap += (CORRECT -> SoundSampleData(R.raw.correct0))
-    soundPoolMap += (INCORRECT -> SoundSampleData(R.raw.incorrect0))
   }
 
   def play(soundSampleId: SoundSampleName) {
-    soundPoolMap.get(soundSampleId).foreach(soundSampleData =>
+    soundPoolMap.get(soundSampleId).foreach { soundSampleData =>
       if (soundSampleData.isLoaded) {
         val curVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         soundPool.play(soundSampleData.soundSample, curVolume, curVolume, 1, 0, 1f)
       }
-    )
+    }
   }
 }
 
@@ -74,7 +74,7 @@ object SoundPlayer {
   }
 
   object SoundSampleData {
-    def apply(soundSample: Integer)(implicit soundPool: SoundPool, ctx: Context): SoundSampleData =
-      SoundSampleData(soundPool.load(ctx, R.raw.correct0, 1))
+    def load(soundSample: Integer)(implicit soundPool: SoundPool, ctx: Context): SoundSampleData =
+      SoundSampleData(soundPool.load(ctx, soundSample, 1))
   }
 }

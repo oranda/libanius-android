@@ -44,6 +44,7 @@ object LibaniusActorSystem extends AppDependencyAccess {
   }
 
   def shutdown() {
+    l.log("ActorSystem shutdown")
     actorSystem.system.shutdown()
   }
 

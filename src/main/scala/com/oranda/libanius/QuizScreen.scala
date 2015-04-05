@@ -240,6 +240,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] def playSound(userWasCorrect: Boolean) {
     import SoundPlayer._
+    l.log("QuizScreen.playSound")
     actorSystem.soundPlayer ! Play(if (userWasCorrect) CORRECT else INCORRECT)
   }
 
