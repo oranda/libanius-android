@@ -29,7 +29,7 @@ class SoundPlayer(implicit ctx: Context) extends Actor with AppDependencyAccess 
 
   private[this] val audioManager: AudioManager =
     ctx.getApplicationContext.getSystemService(Context.AUDIO_SERVICE).asInstanceOf[AudioManager]
-  private[this] val soundPool: SoundPool = new SoundPool(10, AudioManager.STREAM_MUSIC, 0)
+  private[this] implicit val soundPool: SoundPool = new SoundPool(10, AudioManager.STREAM_MUSIC, 0)
   private[this] var soundPoolMap = Map[SoundSampleName, SoundSampleData]()
 
   override def receive = {
@@ -42,13 +42,13 @@ class SoundPlayer(implicit ctx: Context) extends Actor with AppDependencyAccess 
     soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener {
       def onLoadComplete(soundPool: SoundPool, sampleId: Int, status: Int) {
         val soundSample = soundPoolMap.find(_._2.soundSample == sampleId) foreach {
-          case Some((name: SoundSampleName, data: SoundSampleData)) =>
+          case (name: SoundSampleName, data: SoundSampleData) =>
             soundPoolMap += (name -> data.setLoaded)
         }
       }
     })
-    soundPoolMap += (CORRECT -> soundPool.load(ctx, R.raw.correct0, 1))
-    soundPoolMap += (INCORRECT -> soundPool.load(ctx, R.raw.incorrect0, 1))
+    soundPoolMap += (CORRECT -> SoundSampleData(R.raw.correct0))
+    soundPoolMap += (INCORRECT -> SoundSampleData(R.raw.incorrect0))
   }
 
   def play(soundSampleId: SoundSampleName) {
@@ -71,5 +71,10 @@ object SoundPlayer {
 
   case class SoundSampleData(soundSample: Integer, isLoaded: Boolean = false) {
     def setLoaded = copy(isLoaded = true)
+  }
+
+  object SoundSampleData {
+    def apply(soundSample: Integer)(implicit soundPool: SoundPool, ctx: Context): SoundSampleData =
+      SoundSampleData(soundPool.load(ctx, R.raw.correct0, 1))
   }
 }
