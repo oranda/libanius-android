@@ -18,6 +18,7 @@
 
 package com.oranda.libanius.model
 
+import com.oranda.libanius.model.action.{modelComponentsAsQuizItemSources, QuizItemSource, NoParams}
 import com.oranda.libanius.model.quizitem.QuizItem
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import scala.concurrent._
@@ -28,11 +29,13 @@ import scala.collection.immutable._
 
 import scala.concurrent.duration._
 
-import scala.concurrent.{ future, ExecutionContext }
+import scala.concurrent.{future, ExecutionContext}
 import ExecutionContext.Implicits.global
 import com.oranda.libanius.model.quizgroup.{QuizGroupHeader, QuizGroup, QuizGroupWithHeader}
 import com.oranda.libanius.util.Util
 
+import QuizItemSource._
+import modelComponentsAsQuizItemSources._
 
 /*
  * The libanius library contains the core model for Libanius, including the Quiz singleton.
@@ -53,7 +56,7 @@ case class LazyQuiz(quiz: Quiz) extends AppDependencyAccess {
 
   def addQuizItemToFrontOfTwoGroups(header: QuizGroupHeader, prompt: String, response: String):
       LazyQuiz =
-    copy(quiz = quiz.addQuizItemToFrontOfTwoGroups(header, prompt, response))
+    copy(quiz = quiz.addQuizItemToFrontOfTwoGroups(QuizItem(prompt, response), header))
 
   def updateWithUserAnswer(isCorrect: Boolean, currentQuizItem: QuizItemViewWithChoices):
       LazyQuiz =
@@ -79,6 +82,9 @@ case class LazyQuiz(quiz: Quiz) extends AppDependencyAccess {
     this
     // active flag is not set yet but it is by the time the quizGroup is retrieved from the Future
   }
+
+  def findPresentableQuizItem: Option[QuizItemViewWithChoices] =
+    produceQuizItem(quiz, NoParams())
 
   def waitForQuizGroupsToLoad(quizGroupHeaders: Set[QuizGroupHeader]): LazyQuiz = {
     val loadedQuizGroups: Iterable[QuizGroupWithHeader] =

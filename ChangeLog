@@ -1,3 +1,11 @@
+== 0.98 April 4 2015
+
+  * Implemented Text-to-Speech with the Akka actor Voice.
+
+  * Implemented audio for correct and incorrect answers with the Akka actor SoundPlayer.
+
+  * Allow font size in choice buttons to change depending on the amount of text.
+
 == 0.97 June 13 2014
 
   * Incorporated adaptation to user performance from libanius core.

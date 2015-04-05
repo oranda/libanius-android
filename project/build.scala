@@ -7,10 +7,10 @@ object General {
 
   val settings = Defaults.defaultSettings ++ Seq (
     name := "Libanius",
-    version := "0.97",
-    versionCode := 970,
+    version := "0.980",
+    versionCode := 980,
     scalaVersion := "2.10.2",
-    platformName in Android := "android-14",  // formerly android-8
+    platformName in Android := "android-14",
     scalacOptions += "-deprecation",
     javacOptions ++= Seq("-source", "1.6", "-target", "1.6"),
     parallelExecution in Test := false,

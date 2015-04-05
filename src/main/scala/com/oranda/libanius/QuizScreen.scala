@@ -26,7 +26,7 @@ import android.content.Intent
 import android.os.{Handler, Bundle}
 import android.view.{Gravity, KeyEvent, View}
 import android.widget.{EditText, LinearLayout, Button, TextView}
-import scala.concurrent.{ future, ExecutionContext }
+import scala.concurrent.{future, ExecutionContext}
 import ExecutionContext.Implicits.global
 
 import com.oranda.libanius.util.{StringUtil, Util}
@@ -35,14 +35,14 @@ import com.oranda.libanius.model.{Quiz, LazyQuiz}
 import com.oranda.libanius.mobile.Timestamps
 import com.oranda.libanius.mobile.actors._
 import com.oranda.libanius.model.quizgroup.QuizGroupHeader
-import android.view.View.OnClickListener
+import android.view.View.{OnLongClickListener, OnClickListener}
 import android.util.TypedValue
 import android.view.inputmethod.EditorInfo
 import com.oranda.libanius.model.quizitem.QuizItemViewWithChoices
 import android.graphics.Color
-import LibaniusActorSystem._
-import scala.Some
 import com.oranda.libanius.mobile.actors.NoMessage
+
+import LibaniusActorSystem.actorSystem
 
 class QuizScreen extends Activity with TypedActivity with Timestamps with AppDependencyAccess {
 
@@ -60,46 +60,23 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] var currentQuizItem: QuizItemViewWithChoices = _
 
-  private[this] var quiz: LazyQuiz = LazyQuiz(Quiz())  // set in onCreate
-
-  /*
-  override def onCreate(savedInstanceState: Bundle) {
-    super.onCreate(savedInstanceState)
-
-    l.log("QuizScreen: onCreate ")
-
-    val subscriber = system.actorOf(Props(new Actor {
-      def receive = {
-        case MessageEvent(QUIZ_CHANNEL, QuizMessage(_, _, quizReceived)) =>
-          l.log("QuizScreen received quiz " + quizReceived.numQuizItems + " and sets it")
-          quiz = quizReceived
-          appActorEventBus.unsubscribe(self, QUIZ_CHANNEL)
-          l.log("QuizScreen unsubscribed from QUIZ_CHANNEL")
-          runOnUiThread { testUserWithQuizItem() }
-        case _ =>
-          l.log("QuizScreen received something strange")
-      }
-    }))
-
-    setContentView(R.layout.quizscreen)
-
-    LibaniusActorSystem.appActorEventBus.subscribe(subscriber, QUIZ_CHANNEL)
-  }
-*/
-
+  private[this] var quiz: LazyQuiz = LazyQuiz(Quiz()) // set in onCreate
 
   override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
-
     l.log("QuizScreen: onCreate ")
-    implicit val system: ActorSystem = LibaniusActorSystem.system
+
+    implicit val system: ActorSystem = LibaniusActorSystem.actorSystem.system
+
+    actorSystem.soundPlayer ! SoundPlayer.Load()
+
     val recipientName = getClass.getSimpleName
-    LibaniusActorSystem.mailCentre ! CollectMessage(recipientName,
+    LibaniusActorSystem.actorSystem.mailCentre ! CollectMessage(recipientName,
       actor(new Act {
         become {
           case ObjectMessage(quizReceived: LazyQuiz) =>
             l.log("received quiz with numItems " + quizReceived.numQuizItems +
-              " and setting it in QuizScreen")
+                " and setting it in QuizScreen")
             quiz = quizReceived
             runGuiOnUiThread()
           case NoMessage() =>
@@ -135,7 +112,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   def testUserWithQuizItem() {
     Util.stopwatch(quiz.findPresentableQuizItem, "find quiz items") match {
-      case (Some((quizItem, qgWithHeader))) =>
+      case (Some(quizItem)) =>
         currentQuizItem = quizItem
         showNextQuizItem(currentQuizItem)
       case _ =>
@@ -150,15 +127,18 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
   }
 
   private[this] def showNextQuizItem(currentQuizItem: QuizItemViewWithChoices) {
-
-    questionLabel.setText(currentQuizItem.prompt.toString)
+    val promptText = currentQuizItem.prompt.toString
+    LibaniusActorSystem.speak(promptText, currentQuizItem.promptType)
+    questionLabel.setText(promptText)
     var questionNotesText = "What is the " + currentQuizItem.responseType + "?"
     if (currentQuizItem.numCorrectResponsesInARow > 0)
       questionNotesText += " (answered right " +
           currentQuizItem.numCorrectResponsesInARow + " times)"
     questionNotesLabel.setText(questionNotesText)
-    if (currentQuizItem.useMultipleChoice) presentChoiceButtons(currentQuizItem)
-    else showTextBoxAndGetInput(currentQuizItem)
+    if (currentQuizItem.useMultipleChoice)
+      presentChoiceButtons(currentQuizItem)
+    else
+      showTextBoxAndGetInput(currentQuizItem)
   }
 
   private[this] def presentChoiceButtons(currentQuizItem: QuizItemViewWithChoices) {
@@ -169,6 +149,16 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       choiceButton.setOnClickListener(new OnClickListener() {
         def onClick(view: View) {
           processButtonResponse(currentQuizItem, choiceButtons, choiceButton)
+        }
+      })
+      choiceButton.setLongClickable(true);
+      choiceButton.setOnLongClickListener(new OnLongClickListener() {
+        def onLongClick(view: View): Boolean = {
+          future {
+            val buttonText = choiceButton.getText.toString
+            LibaniusActorSystem.speak(buttonText, currentQuizItem.responseType)
+          }
+          true
         }
       })
       responseInputArea.addView(choiceButton)
@@ -216,12 +206,14 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       choiceButtons: List[Button], clickedButton: Button) {
     updatePrevOptionArea(currentQuizItem)
     val correctResp = currentQuizItem.quizItem.correctResponse.value
+    val userWasCorrect = clickedButton.getText == correctResp
+    playSound(userWasCorrect)
     Widgets.setColorsForButtons(choiceButtons, findPrevOptionLabels, correctResp, clickedButton)
   }
 
   private[this] def optionalIsCompleteText(itemComplete: Boolean,
       numCorrectResponsesRequired: Int): String =
-    if (itemComplete)  " (correct " + numCorrectResponsesRequired + " times -- COMPLETE)" else ""
+    if (itemComplete) " (correct " + numCorrectResponsesRequired + " times -- COMPLETE)" else ""
 
   private[this] def updateUIAfterText(currentQuizItem: QuizItemViewWithChoices,
       userWasCorrect: Boolean, quizItemComplete: Boolean) {
@@ -239,10 +231,16 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       feedbackText.setTextColor(Color.RED)
       feedbackText.setText("Wrong! It's " + currentQuizItem.quizItem.correctResponse)
     }
+    playSound(userWasCorrect)
     responseInputArea.addView(feedbackText)
 
     val correctResp = currentQuizItem.quizItem.correctResponse.value
     Widgets.setColorsForPrevOptions(findPrevOptionLabels, correctResp)
+  }
+
+  private[this] def playSound(userWasCorrect: Boolean) {
+    import SoundPlayer._
+    actorSystem.soundPlayer ! Play(if (userWasCorrect) CORRECT else INCORRECT)
   }
 
   private[this] def updatePrevOptionArea(currentQuizItem: QuizItemViewWithChoices) {
@@ -303,7 +301,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     updateUIAfterChoice(currentQuizItem, choiceButtons, clickedButton)
     val userWasCorrect = currentQuizItem.quizItem.correctResponse.looselyMatches(userResponse)
     updateModel(userResponse, userWasCorrect)
-    pauseThenTestAgain(userWasCorrect, currentQuizItem.isComplete)
+    val textLength = userResponse.length
+    pauseThenTestAgain(userWasCorrect, currentQuizItem.isComplete, textLength)
   }
 
   private[this] def processTextResponse(currentQuizItem: QuizItemViewWithChoices,
@@ -318,7 +317,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     updateUIAfterText(currentQuizItem, userWasCorrect, quizItemComplete)
     updateModel(userResponse, userWasCorrect)
 
-    pauseThenTestAgain(userWasCorrect, quizItemComplete)
+    val textLength = userResponse.length
+    pauseThenTestAgain(userWasCorrect, quizItemComplete, textLength)
   }
 
   private[this] def updateModel(userResponse: String, userWasCorrect: Boolean) {
@@ -327,10 +327,12 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
         "updating quiz with the user answer")
   }
 
-  private[this] def pauseThenTestAgain(userWasCorrect: Boolean, quizItemComplete: Boolean) {
-    val delayMillis =
-      if (currentQuizItem.useMultipleChoice) { if (userWasCorrect) 50 else 300 }
-      else if (userWasCorrect && !quizItemComplete) 400 else 1800
+  private[this] def pauseThenTestAgain(userWasCorrect: Boolean, quizItemComplete: Boolean,
+      textLength: Int) {
+    val complexityMultiplier = if (textLength < 12) 1 else 1 + (textLength / 5)
+    val delayMillis = complexityMultiplier *
+      (if (currentQuizItem.useMultipleChoice) { if (userWasCorrect) 150 else 900 }
+      else if (userWasCorrect && !quizItemComplete) 400 else 1800)
 
     val handler = new Handler
     handler.postDelayed(new Runnable() { def run() = testUserWithQuizItemAgain() }, delayMillis)

@@ -20,7 +20,7 @@ package com.oranda.libanius
 
 import android.widget.{LinearLayout, TextView, Button}
 import android.util.TypedValue
-import android.view.{View, Gravity, ViewGroup}
+import android.view.Gravity
 import android.view.ViewGroup.LayoutParams
 import android.graphics.{Typeface, Color}
 import android.content.Context
@@ -49,14 +49,19 @@ object Widgets extends AppDependencyAccess {
 
       choiceButton.setGravity(Gravity.CENTER)
       choiceButton.setTextColor(Color.BLACK)
-      choiceButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30)
       choiceButton.setBackgroundColor(Color.LTGRAY)
+      val textLength = choiceValue.length
+      val textHeight =
+        if (textLength < 20) 30
+        else if (textLength < 50) 20
+        else 15
+      choiceButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, textHeight)
       choiceButton.setText(choiceValue)
 
       choiceButton
     }
 
-    choiceValues.map(constructChoiceButton(_))
+    choiceValues.filterNot(_.trim.isEmpty).map(constructChoiceButton(_))
   }
 
   def constructPrevLabel(androidContext: Context, text: String): TextView = {

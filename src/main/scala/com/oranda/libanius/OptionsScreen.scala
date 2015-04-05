@@ -59,9 +59,10 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     super.onCreate(savedInstanceState)
 
     l.log("OptionsScreen: onCreate ")
-    implicit val system: ActorSystem = LibaniusActorSystem.system
+    LibaniusActorSystem.init(this)
+    implicit val system: ActorSystem = LibaniusActorSystem.actorSystem.system
     val recipientName = getClass.getSimpleName
-    LibaniusActorSystem.mailCentre ! CollectMessage(recipientName,
+    LibaniusActorSystem.actorSystem.mailCentre ! CollectMessage(recipientName,
       actor(new Act {
         become {
           case ObjectMessage(quizReceived: LazyQuiz) =>
@@ -85,7 +86,7 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
       }
     }))
 
-    LibaniusActorSystem.appActorEventBus.subscribe(subscriber, QUIZ_ITEM_CHANNEL)
+    LibaniusActorSystem.actorSystem.appActorEventBus.subscribe(subscriber, QUIZ_ITEM_CHANNEL)
   }
 
   def runGuiOnUiThread() {

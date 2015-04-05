@@ -19,28 +19,40 @@
 package com.oranda.libanius.mobile.actors
 
 import akka.actor.{Props, ActorSystem}
-import com.oranda.libanius.model.{Quiz, LazyQuiz}
+import android.content.Context
+import com.oranda.libanius.model.LazyQuiz
 import com.oranda.libanius.dependencies.AppDependencyAccess
 import com.oranda.libanius.model.quizgroup.QuizGroupHeader
 import com.oranda.libanius.model.quizitem.QuizItem
 
-object LibaniusActorSystem extends AppDependencyAccess {
+class LibaniusActorSystem(implicit ctx: Context) extends AppDependencyAccess {
   val system: ActorSystem = ActorSystem("LibaniusActorSystem")
-
-  val mailCentre = LibaniusActorSystem.system.actorOf(Props(new MailCentre), "MailCentre")
-
-  def sendQuizTo(recipientName: String, quiz: LazyQuiz) {
-    mailCentre ! DropMessage(recipientName, quiz)
-  }
-
   val appActorEventBus = new LibaniusActorEventBus
-  val QUIZ_ITEM_CHANNEL = "/data_objects/quiz_item"
 
-  def sendQuizItem(qgh: QuizGroupHeader, quizItem: QuizItem) {
-    l.log("LibaniusActorSystem.sendQuizItem " + qgh)
-    val newQuizItemMessage = NewQuizItemMessage(qgh, quizItem)
-    appActorEventBus.publish(EventBusMessageEvent(QUIZ_ITEM_CHANNEL, newQuizItemMessage))
-  }
+  val mailCentre = system.actorOf(Props(new MailCentre), "MailCentre")
+  val voice = system.actorOf(Props(new Voice), "Voice")
+  val soundPlayer = system.actorOf(Props(new SoundPlayer), "SoundPlayer")
 }
 
+object LibaniusActorSystem extends AppDependencyAccess {
 
+  val QUIZ_ITEM_CHANNEL = "/data_objects/quiz_item"
+  var actorSystem: LibaniusActorSystem = _
+
+  def init(implicit ctx: Context) = {
+    actorSystem = new LibaniusActorSystem
+  }
+
+  def sendQuizTo(recipientName: String, quiz: LazyQuiz) {
+    actorSystem.mailCentre ! DropMessage(recipientName, quiz)
+  }
+
+  def sendQuizItem(qgh: QuizGroupHeader, quizItem: QuizItem) {
+    val newQuizItemMessage = NewQuizItemMessage(qgh, quizItem)
+    actorSystem.appActorEventBus.publish(EventBusMessageEvent(QUIZ_ITEM_CHANNEL, newQuizItemMessage))
+  }
+
+  def speak(text: String, quizGroupKeyType: String) {
+    actorSystem.voice ! Speak(text, quizGroupKeyType)
+  }
+}
