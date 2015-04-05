@@ -39,8 +39,12 @@ object LibaniusActorSystem extends AppDependencyAccess {
   val QUIZ_ITEM_CHANNEL = "/data_objects/quiz_item"
   var actorSystem: LibaniusActorSystem = _
 
-  def init(implicit ctx: Context) = {
+  def init(implicit ctx: Context) {
     actorSystem = new LibaniusActorSystem
+  }
+
+  def shutdown() {
+    actorSystem.system.shutdown()
   }
 
   def sendQuizTo(recipientName: String, quiz: LazyQuiz) {

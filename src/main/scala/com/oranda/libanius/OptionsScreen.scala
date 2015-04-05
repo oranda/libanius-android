@@ -104,6 +104,11 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     saveQuiz
   }
 
+  override def onDestroy() {
+    super.onDestroy()
+    LibaniusActorSystem.shutdown()
+  }
+
   private[this] def saveQuiz() {
     try { showStatus("Saving quiz data...") } catch { case e: Exception => /* ignore NPEs */ }
     future { dataStore.saveQuiz(quiz) }

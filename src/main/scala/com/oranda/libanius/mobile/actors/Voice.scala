@@ -40,24 +40,19 @@ class Voice(implicit ctx: Context) extends Actor with TextToSpeech.OnInitListene
       l.logError("Error initializing TextToSpeech engine.")
   }
 
-  /*
-
-  // check: why was this here in the first place for an Activity. What are the
-  // dangers if the tts is not shut down when the Activity shuts down?
-  override def onDestroy {
-
-    if (tts != null) {
-      tts.stop
-      tts.shutdown
-    }
-  }*/
-
   override def receive = {
     case Speak(text: String, quizGroupKeyType: String) =>
       KnownQuizGroups.getLocale(quizGroupKeyType).foreach(speak(text, _))
       setSpeechLanguage(DEFAULT_LOCALE)
     case _ =>
       l.logError("Voice received an unknown command")
+  }
+
+  override def postStop {
+    if (tts != null) {
+      tts.stop
+      tts.shutdown
+    }
   }
 
   def speak(text: String, locale: Locale) {
