@@ -96,10 +96,8 @@ object Widgets extends AppDependencyAccess {
       CORRECT_BUTTON: Button, CLICKED_BUTTON: Button) {
 
     optionButton match {
-      case CORRECT_BUTTON => l.log("Setting button for " + optionButton.getText + " to green")
-                             optionButton.setBackgroundColor(Color.GREEN)
-      case CLICKED_BUTTON => l.log("Setting button for " + optionButton.getText + " to red")
-                             optionButton.setBackgroundColor(Color.RED)
+      case CORRECT_BUTTON => optionButton.setBackgroundColor(Color.GREEN)
+      case CLICKED_BUTTON => optionButton.setBackgroundColor(Color.RED)
       case _ =>
     }
   }
