@@ -17,3 +17,11 @@ Author: Matthias Buchmeier
 Remote translation <br/>
 Source: MyMemory by Translated.net
 
+Sound files <br/>
+Source: freesound.org
+  Game Sound Correct.wav by http://freesound.org/people/Bertrof
+  Bad Beep (Incorrect) by http://freesound.org/people/RICHERlandTV
+License: http://creativecommons.org/licenses/by/3.0/
+
+
+
