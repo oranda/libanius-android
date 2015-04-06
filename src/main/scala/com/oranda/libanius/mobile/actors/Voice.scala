@@ -49,10 +49,8 @@ class Voice(implicit ctx: Context) extends Actor with TextToSpeech.OnInitListene
   }
 
   override def postStop {
-    if (tts != null) {
-      tts.stop
-      tts.shutdown
-    }
+    tts.stop
+    tts.shutdown
   }
 
   def speak(text: String, locale: Locale) {
