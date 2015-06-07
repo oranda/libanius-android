@@ -4,9 +4,11 @@ resolvers ++= Seq("snapshots" at "http://oss.sonatype.org/content/repositories/s
 		  "releases"  at "http://oss.sonatype.org/content/repositories/releases")
 
 
-addSbtPlugin("org.scala-sbt" % "sbt-android-plugin" % "0.6.2")
+addSbtPlugin("com.hanhuy.sbt" % "android-sdk-plugin" % "1.3.24")
 
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.0.0")
+//addSbtPlugin("org.scala-sbt" % "sbt-android-plugin" % "0.6.2")
+
+//addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.0.0")
 
 
 
