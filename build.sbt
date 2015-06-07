@@ -2,21 +2,29 @@ import android.Keys._
 
 name := "Libanius"
 
-resolvers += "Typesafe Repository" at "http:repo.typesafe.com/typesafe/releases/"
+resolvers ++= Seq("Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
+  "Akka Snapshot Repository" at "http://repo.akka.io/snapshots/")
 
-javacOptions in Global ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil
+javacOptions in Global ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil // 1.8 causes exception in dex?
 
 scalacOptions in Global += "-feature"
 
 scalaVersion in Global := "2.11.6"
 
+version in Global := "0.983"
+
+versionCode in Global := Some(983)
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka" % "akka-actor_2.10" % "2.1.0",
+  //"com.typesafe.akka" %% "akka-actor" % "2.4-SNAPSHOT", // can trigger exception in dex
   "org.scalaz" %% "scalaz-core" % "7.1.2",
   "com.typesafe.play" %% "play-json" % "2.3.4",
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.5.2",
   "com.fasterxml.jackson.module" % "jackson-module-scala_2.11" % "2.5.2"
 )
+
+dexMaxHeap in Android := "2408m"
 
 proguardOptions in Android ++= Seq(
   "-dontwarn **",
