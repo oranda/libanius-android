@@ -23,7 +23,7 @@ https://play.google.com/store/apps/details?id=com.oranda.libanius
 
 This includes demo data.
 
-If you attempt to build the source, it does not work above SBT 0.12 and Java 7 due to dependency issues.
+If you attempt to build the source, it does not work above SBT 0.12, Java 7, and Scala 2.10.2 due to dependency issues.
 
 
 Screenshots

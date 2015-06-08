@@ -15,7 +15,7 @@ object General {
     javacOptions ++= Seq("-source", "1.6", "-target", "1.6"),
     parallelExecution in Test := false,
     resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
-    libraryDependencies ++= Seq(       //"com.typesafe.config" % "config" % "0.3.0",
+    libraryDependencies ++= Seq(
       "com.typesafe.akka" % "akka-actor_2.10" % "2.1.0",
       "org.scalaz" %% "scalaz-core" % "7.0.3",
       "com.typesafe.play" %% "play-json" % "2.2.0-RC1",
