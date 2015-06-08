@@ -28,7 +28,6 @@ import com.oranda.libanius.model.quizitem.QuizItem
 class LibaniusActorSystem(implicit ctx: Context) extends AppDependencyAccess {
   val system: ActorSystem = ActorSystem("LibaniusActorSystem")
   val appActorEventBus = new LibaniusActorEventBus
-
   val mailCentre = system.actorOf(Props(new MailCentre), "MailCentre")
   val voice = system.actorOf(Props(new Voice), "Voice")
   val soundPlayer = system.actorOf(Props(new SoundPlayer), "SoundPlayer")

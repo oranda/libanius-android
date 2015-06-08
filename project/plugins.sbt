@@ -1,10 +1,9 @@
 resolvers += Resolver.url("scalasbt releases", new URL("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 
-resolvers ++= Seq("snapshots" at "http://oss.sonatype.org/content/repositories/snapshots", 
-		  "releases"  at "http://oss.sonatype.org/content/repositories/releases")
+//resolvers += Resolver.url("scalasbt snapshots", new URL("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-snapshots"))(Resolver.ivyStylePatterns)
+
+resolvers ++= Seq("snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
+	"releases"  at "http://oss.sonatype.org/content/repositories/releases")
 
 
-addSbtPlugin("com.hanhuy.sbt" % "android-sdk-plugin" % "1.3.24")
-
-
-
+addSbtPlugin("org.scala-sbt" % "sbt-android-plugin" % "0.6.2")
