@@ -33,12 +33,11 @@ class Voice(implicit ctx: Context) extends Actor with TextToSpeech.OnInitListene
 
   private[this] val tts = new TextToSpeech(ctx, this)
 
-  override def onInit(status: Int) {
+  override def onInit(status: Int): Unit =
     if (status == TextToSpeech.SUCCESS)
       setSpeechLanguage(DEFAULT_LOCALE)
     else
       l.logError("Error initializing TextToSpeech engine.")
-  }
 
   override def receive = {
     case Speak(text: String, quizGroupKeyType: String) =>
@@ -53,7 +52,7 @@ class Voice(implicit ctx: Context) extends Actor with TextToSpeech.OnInitListene
     tts.shutdown
   }
 
-  def speak(text: String, locale: Locale) {
+  def speak(text: String, locale: Locale): Unit = {
     // Some characters like underscores are allowed in "raw" data but can disrupt the speaking.
     val cleanText = text.replaceAll("[_\\*]", ".")
 

@@ -46,7 +46,7 @@ case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
   def readResource(resName: String): Option[String] =
     Some(readInputStream(resourceToInputStream(resName)))
 
-  def save(fileName: String, fileNameBackup: String, strToSave: String) {
+  def save(fileName: String, fileNameBackup: String, strToSave: String): Unit = {
     val file = new File(fileName)
     val file2 = new File(fileNameBackup)
     file2.delete()

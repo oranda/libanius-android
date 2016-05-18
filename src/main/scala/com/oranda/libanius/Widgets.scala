@@ -113,18 +113,16 @@ object Widgets extends AppDependencyAccess {
   }
 
   protected[libanius] def setColorsForPrevOptions(prevOptionLabels: Seq[TextView],
-      correctResponse: String) {
+      correctResponse: String): Unit = {
     val correctLabel = prevOptionLabels.find(_.getText.toString.startsWith(correctResponse + " ="))
     correctLabel.foreach(_.setTextColor(Color.GREEN))
   }
 
-  protected[libanius] def closeOnscreenKeyboard(ctx: Context, windowToken: IBinder) {
+  protected[libanius] def closeOnscreenKeyboard(ctx: Context, windowToken: IBinder): Unit =
     inputMethodService(ctx).hideSoftInputFromWindow(windowToken, 0)
-  }
 
-  protected[libanius] def showOnscreenKeyboard(ctx: Context) {
+  protected[libanius] def showOnscreenKeyboard(ctx: Context): Unit =
     inputMethodService(ctx).toggleSoftInput(0, 0)
-  }
 
   private[this] def inputMethodService(ctx: Context) =
     ctx.getSystemService(Context.INPUT_METHOD_SERVICE).asInstanceOf[InputMethodManager]

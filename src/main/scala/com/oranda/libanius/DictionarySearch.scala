@@ -49,7 +49,7 @@ class DictionarySearch(quiz: Quiz, searchInput: String,
 
   import DictionarySearch._
 
-  def findAndShowResultsAsync() {
+  def findAndShowResultsAsync(): Unit = {
 
     l.log("Searching for results for " + searchInput)
     showStatus("Searching locally and remotely...")
@@ -79,7 +79,7 @@ class DictionarySearch(quiz: Quiz, searchInput: String,
     case _ => "Unknown error"
   }
 
-  private[this] def showResults(results: Try[List[SearchResult]], maxResults: Int) {
+  private[this] def showResults(results: Try[List[SearchResult]], maxResults: Int): Unit =
     runOnUiThread {
       results match {
         case Success(results) =>
@@ -91,15 +91,14 @@ class DictionarySearch(quiz: Quiz, searchInput: String,
           statusMessageForException(ex)
       }
     }
-  }
 
-  private[this] def showSearchResults(searchResults: List[SearchResult]) {
+  private[this] def showSearchResults(searchResults: List[SearchResult]): Unit = {
     clearStatus()
     for (searchResult <- searchResults)
       addRow(searchResult)
   }
 
-  private[this] def addRow(searchResult: SearchResult) {
+  private[this] def addRow(searchResult: SearchResult): Unit = {
     val searchResultsRow = widgetFactory.newLinearLayout
     val keyWordLabel = widgetFactory.newTextView
     keyWordLabel.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT,
@@ -135,7 +134,7 @@ class DictionarySearch(quiz: Quiz, searchInput: String,
     val cleanedKeyWord = clean(keyWord)
     val cleanedValue = clean(value)
     btnTag.setOnClickListener(new OnClickListener() {
-      def onClick(view: View) {
+      def onClick(view: View): Unit = {
         val newQuizItem = QuizItem(cleanedKeyWord, cleanedValue)
         LibaniusActorSystem.sendQuizItem(quizGroupHeader, newQuizItem)
       }

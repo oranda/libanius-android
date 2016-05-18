@@ -26,9 +26,8 @@ class StringSplitterAndroid(_char: Character) extends StringSplitter(_char) {
   
   val splitter = new TextUtils.SimpleStringSplitter(_char)
   
-  override def setString(str: String) {
+  override def setString(str: String): Unit =
     splitter.setString(str)
-  }
   
   override def hasNext: Boolean = splitter.hasNext
   override def next: String = splitter.next

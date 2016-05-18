@@ -25,10 +25,11 @@ package object libanius {
 
   implicit def toRunnable[A](f: => A): Runnable = new Runnable() { def run() = f }
 
-  def showStatus(text: String)(implicit statusLabel: TextView) {
+  def showStatus(text: String)(implicit statusLabel: TextView): Unit =
     statusLabel.setText(text)
-  }
-  def clearStatus()(implicit statusLabel: TextView) { showStatus("") }
+
+  def clearStatus()(implicit statusLabel: TextView): Unit =
+    showStatus("")
 
   class WidgetFactory(ctx: Context) {
     def newLinearLayout = new LinearLayout(ctx)

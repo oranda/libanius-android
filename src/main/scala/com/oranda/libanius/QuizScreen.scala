@@ -62,7 +62,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   private[this] var quiz: LazyQuiz = LazyQuiz(Quiz()) // set in onCreate
 
-  override def onCreate(savedInstanceState: Bundle) {
+  override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
     l.log("QuizScreen: onCreate ")
 
@@ -87,11 +87,10 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     )
   }
 
-  def runGuiOnUiThread() {
+  def runGuiOnUiThread(): Unit =
     runOnUiThread(new Runnable { override def run() { initGui() } })
-  }
 
-  def initGui() {
+  def initGui(): Unit = {
     setContentView(R.layout.quizscreen)
     if (quiz == null) {
       // Check that the quiz data has not been cleared from memory on a resume
@@ -100,17 +99,17 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     testUserWithQuizItem()
   }
 
-  override def onPause() {
+  override def onPause(): Unit = {
     super.onPause()
     saveQuiz
   }
 
-  private[this] def saveQuiz() {
+  private[this] def saveQuiz(): Unit = {
     try { showStatus("Saving quiz data...") } catch { case e: Exception => /* ignore NPEs */ }
     future { dataStore.saveQuiz(quiz) }
   }
 
-  def testUserWithQuizItem() {
+  def testUserWithQuizItem(): Unit =
     Util.stopwatch(quiz.findPresentableQuizItem, "find quiz items") match {
       case (Some(quizItem)) =>
         currentQuizItem = quizItem
@@ -118,15 +117,14 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       case _ =>
         showStatus("No more questions found! Done!")
     }
-  }
 
-  def testUserWithQuizItemAgain() {
+  def testUserWithQuizItemAgain(): Unit = {
     showScoreAsync() // The score takes a second to calculate, so do it in the background
     showSpeed()
     testUserWithQuizItem()
   }
 
-  private[this] def showNextQuizItem(currentQuizItem: QuizItemViewWithChoices) {
+  private[this] def showNextQuizItem(currentQuizItem: QuizItemViewWithChoices): Unit = {
     val promptText = currentQuizItem.prompt.toString
     LibaniusActorSystem.speak(promptText, currentQuizItem.promptType)
     questionLabel.setText(promptText)
@@ -141,15 +139,14 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       showTextBoxAndGetInput(currentQuizItem)
   }
 
-  private[this] def presentChoiceButtons(currentQuizItem: QuizItemViewWithChoices) {
+  private[this] def presentChoiceButtons(currentQuizItem: QuizItemViewWithChoices): Unit = {
     responseInputArea.removeAllViews()
     val choiceButtons = Widgets.constructChoiceButtons(this, currentQuizItem.allChoices)
 
     choiceButtons.foreach { choiceButton =>
       choiceButton.setOnClickListener(new OnClickListener() {
-        def onClick(view: View) {
+        def onClick(view: View): Unit =
           processButtonResponse(currentQuizItem, choiceButtons, choiceButton)
-        }
       })
       choiceButton.setLongClickable(true);
       choiceButton.setOnLongClickListener(new OnLongClickListener() {
@@ -165,7 +162,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     }
   }
 
-  private[this] def showTextBoxAndGetInput(currentQuizItem: QuizItemViewWithChoices) {
+  private[this] def showTextBoxAndGetInput(currentQuizItem: QuizItemViewWithChoices): Unit = {
     responseInputArea.removeAllViews()
 
     val responseTextBox = new EditText(this)
@@ -186,7 +183,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     responseTextBox.setSelected(true)
   }
 
-  def removeCurrentWord(v: View) {
+  def removeCurrentWord(v: View): Unit = {
     val (newQuiz: LazyQuiz, wasRemoved) = quiz.removeQuizItem(currentQuizItem.quizItem,
         currentQuizItem.quizGroupHeader)
     quiz = newQuiz
@@ -194,7 +191,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     testUserWithQuizItemAgain()
   }
 
-  def gotoOptions(v: View) {
+  def gotoOptions(v: View): Unit = {
     LibaniusActorSystem.sendQuizTo("OptionsScreen", quiz)
     l.log("in QuizScreen, sending quiz with active group headers " +
         quiz.quiz.activeQuizGroupHeaders)
@@ -238,13 +235,13 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     Widgets.setColorsForPrevOptions(findPrevOptionLabels, correctResp)
   }
 
-  private[this] def playSound(userWasCorrect: Boolean) {
+  private[this] def playSound(userWasCorrect: Boolean): Unit = {
     import SoundPlayer._
     l.log("QuizScreen.playSound")
     actorSystem.soundPlayer ! Play(if (userWasCorrect) CORRECT else INCORRECT)
   }
 
-  private[this] def updatePrevOptionArea(currentQuizItem: QuizItemViewWithChoices) {
+  private[this] def updatePrevOptionArea(currentQuizItem: QuizItemViewWithChoices): Unit = {
     addPrevQuestionLabel(currentQuizItem)
     addPrevOptionLabels(currentQuizItem)
   }
@@ -267,7 +264,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     else Nil
   }
 
-  private[this] def addPrevQuestionLabel(currentQuizItem: QuizItemViewWithChoices) {
+  private[this] def addPrevQuestionLabel(currentQuizItem: QuizItemViewWithChoices): Unit = {
     val prevQuestionText = "PREV: " + questionLabel.getText +
         optionalIsCompleteText(currentQuizItem.isComplete,
         currentQuizItem.numCorrectResponsesRequired)
@@ -280,7 +277,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
         prevQuestionArea.addView(_))
   }
 
-  private[this] def addPrevOptionLabels(currentQuizItem: QuizItemViewWithChoices) {
+  private[this] def addPrevOptionLabels(currentQuizItem: QuizItemViewWithChoices): Unit = {
     val prevOptionLabels = constructPrevOptionLabels(currentQuizItem)
     prevOptionArea.removeAllViews()
     prevOptionLabels.foreach(prevOptionArea.addView(_))
@@ -322,7 +319,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     pauseThenTestAgain(userWasCorrect, quizItemComplete, textLength)
   }
 
-  private[this] def updateModel(userResponse: String, userWasCorrect: Boolean) {
+  private[this] def updateModel(userResponse: String, userWasCorrect: Boolean): Unit = {
     updateTimestamps(userWasCorrect)
     Util.stopwatch(quiz = quiz.updateWithUserAnswer(userWasCorrect, currentQuizItem),
         "updating quiz with the user answer")
@@ -339,7 +336,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     handler.postDelayed(new Runnable() { def run() = testUserWithQuizItemAgain() }, delayMillis)
   }
 
-  private[this] def showScoreAsync() {
+  private[this] def showScoreAsync(): Unit =
     /*
      * Instead of using Android's AsyncTask, use a Scala Future. It's more concise and general,
      * but we need to remind Android to use the UI thread when the result is returned.
@@ -347,12 +344,11 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     future {
       Util.stopwatch(quiz.scoreSoFar, "calculating score")
     } map { scoreSoFar: BigDecimal =>
-      runOnUiThread(new Runnable { override def run() {
+      runOnUiThread(new Runnable { override def run(): Unit =
         showScore(StringUtil.formatScore(scoreSoFar))
-      }})
+      })
     }
-  }
 
-  private[this] def showSpeed() { speedLabel.setText("Speed: " + answerSpeed + "/min") }
-  private[this] def showScore(score: String) { showStatus("Score: " + score) }
+  private[this] def showSpeed(): Unit = speedLabel.setText("Speed: " + answerSpeed + "/min")
+  private[this] def showScore(score: String): Unit = showStatus("Score: " + score)
 }

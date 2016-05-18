@@ -26,7 +26,7 @@ trait Timestamps {
 
   private[this] var timestampsLastCorrectAnswers = List[Long]()
   
-  def updateTimestamps(thereJustOccurredACorrectAnswer: Boolean) {
+  def updateTimestamps(thereJustOccurredACorrectAnswer: Boolean): Unit =
     if (thereJustOccurredACorrectAnswer) {
       val currentTime = System.currentTimeMillis
       timestampsLastCorrectAnswers ::= currentTime
@@ -35,8 +35,7 @@ trait Timestamps {
        * list as a measure of the number of correct answers per minute.
        */
       timestampsLastCorrectAnswers = timestampsLastCorrectAnswers.filter(_ > currentTime - 60000)
-    } 
-  }
+    }
   
   def answerSpeed = timestampsLastCorrectAnswers.size
 }

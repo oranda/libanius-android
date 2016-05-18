@@ -38,11 +38,11 @@ class SoundPlayer(implicit ctx: Context) extends Actor with AppDependencyAccess 
     case _ => l.logError("SoundPlayer received an unknown command")
   }
 
-  def loadSounds() {
+  def loadSounds(): Unit = {
     soundPoolMap += (CORRECT -> SoundSampleData.load(R.raw.correct0))
     soundPoolMap += (INCORRECT -> SoundSampleData.load(R.raw.incorrect0))
     soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener {
-      def onLoadComplete(soundPool: SoundPool, sampleId: Int, status: Int) {
+      def onLoadComplete(soundPool: SoundPool, sampleId: Int, status: Int): Unit = {
         val soundSample = soundPoolMap.find(_._2.soundSample == sampleId) foreach {
           case (name: SoundSampleName, data: SoundSampleData) =>
             soundPoolMap += (name -> data.setLoaded)
@@ -51,13 +51,12 @@ class SoundPlayer(implicit ctx: Context) extends Actor with AppDependencyAccess 
     })
   }
 
-  def play(soundSampleId: SoundSampleName) {
+  def play(soundSampleId: SoundSampleName): Unit =
     soundPoolMap.get(soundSampleId).foreach { soundSampleData =>
       if (soundSampleData.isLoaded) {
         val curVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         soundPool.play(soundSampleData.soundSample, curVolume, curVolume, 1, 0, 1f)
       }
-    }
   }
 }
 

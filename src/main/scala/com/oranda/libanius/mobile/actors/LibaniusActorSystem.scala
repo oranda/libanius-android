@@ -38,25 +38,23 @@ object LibaniusActorSystem extends AppDependencyAccess {
   val QUIZ_ITEM_CHANNEL = "/data_objects/quiz_item"
   var actorSystem: LibaniusActorSystem = _
 
-  def init(implicit ctx: Context) {
+  def init(implicit ctx: Context): Unit =
     actorSystem = new LibaniusActorSystem
-  }
 
-  def shutdown() {
+  def shutdown(): Unit = {
     l.log("ActorSystem shutdown")
     actorSystem.system.shutdown()
   }
 
-  def sendQuizTo(recipientName: String, quiz: LazyQuiz) {
+  def sendQuizTo(recipientName: String, quiz: LazyQuiz): Unit =
     actorSystem.mailCentre ! DropMessage(recipientName, quiz)
-  }
 
-  def sendQuizItem(qgh: QuizGroupHeader, quizItem: QuizItem) {
+  def sendQuizItem(qgh: QuizGroupHeader, quizItem: QuizItem): Unit = {
     val newQuizItemMessage = NewQuizItemMessage(qgh, quizItem)
     actorSystem.appActorEventBus.publish(EventBusMessageEvent(QUIZ_ITEM_CHANNEL, newQuizItemMessage))
   }
 
-  def speak(text: String, quizGroupKeyType: String) {
+  def speak(text: String, quizGroupKeyType: String): Unit = {
     actorSystem.voice ! Speak(text, quizGroupKeyType)
   }
 }

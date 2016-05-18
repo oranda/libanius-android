@@ -55,7 +55,7 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
 
   private[this] var quiz: LazyQuiz = LazyQuiz(Quiz())
 
-  override def onCreate(savedInstanceState: Bundle) {
+  override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
 
     l.log("OptionsScreen: onCreate ")
@@ -89,38 +89,38 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     LibaniusActorSystem.actorSystem.appActorEventBus.subscribe(subscriber, QUIZ_ITEM_CHANNEL)
   }
 
-  def runGuiOnUiThread() {
+  def runGuiOnUiThread(): Unit = {
     runOnUiThread { initGui() }
   }
 
-  def initGui() {
+  def initGui(): Unit = {
     setContentView(R.layout.optionsscreen)
     addQuizGroupCheckBoxes()
     prepareSearchUi()
   }
 
-  override def onPause() {
+  override def onPause(): Unit = {
     super.onPause()
     saveQuiz
   }
 
-  override def onDestroy() {
+  override def onDestroy(): Unit = {
     super.onDestroy()
     LibaniusActorSystem.shutdown()
   }
 
-  private[this] def saveQuiz() {
+  private[this] def saveQuiz(): Unit = {
     try { showStatus("Saving quiz data...") } catch { case e: Exception => /* ignore NPEs */ }
     future { dataStore.saveQuiz(quiz) }
   }
 
-  def addQuizGroupCheckBoxes() {
+  def addQuizGroupCheckBoxes(): Unit = {
 
     def makeQuizGroupCheckBox(qgHeader: QuizGroupHeader): CheckBox = {
       val checkBox = new CheckBox(getApplicationContext)
       checkBox.setText(qgHeader.promptType + "->" + qgHeader.responseType)
       checkBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-        override def onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) {
+        override def onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean): Unit = {
           quiz = if (isChecked) quiz.activate(qgHeader) else quiz.deactivate(qgHeader)
         }
       })
@@ -149,12 +149,12 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
   def checkedQuizGroupHeaders: Set[QuizGroupHeader] =
     checkBoxes.filter(_._1.isChecked).map(_._2).toSet
 
-  def alert(title: String, message: String) {
+  def alert(title: String, message: String): Unit = {
     new AlertDialog.Builder(OptionsScreen.this).setTitle(title).setMessage(message).
         setPositiveButton("OK", null).show()
   }
 
-  def gotoQuiz(v: View) {
+  def gotoQuiz(v: View): Unit =
     if (noBoxesChecked)
       alert("Error", "No boxes checked")
     else {
@@ -164,15 +164,13 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
       val intent = new Intent(getBaseContext(), classOf[QuizScreen])
       startActivity(intent)
     }
-  }
 
-  def getQuizReady() {
+  def getQuizReady(): Unit =
     Try(quiz = quiz.waitForQuizGroupsToLoad(checkedQuizGroupHeaders)).recover {
       case e: TimeoutException => l.logError("Timed out loading quiz groups")
     }
-  }
 
-  def prepareSearchUi() {
+  def prepareSearchUi(): Unit =
     searchInputBox.setOnEditorActionListener(new TextView.OnEditorActionListener() {
       override def onEditorAction(searchInputBox: TextView, actionId: Int,
           event: KeyEvent): Boolean = {
@@ -181,9 +179,8 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
         true
       }
     })
-  }
 
-  private[this] def findAndShowResultsAsync() {
+  private[this] def findAndShowResultsAsync(): Unit = {
     clearResults()
     Widgets.closeOnscreenKeyboard(this, searchInputBox.getWindowToken)
     getQuizReady()
@@ -193,7 +190,7 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     dictionarySearch.findAndShowResultsAsync()
   }
 
-  private[this] def addItemToQuiz(quizGroupHeader: QuizGroupHeader, quizItem: QuizItem) {
+  private[this] def addItemToQuiz(quizGroupHeader: QuizGroupHeader, quizItem: QuizItem): Unit = {
     l.log("addItemToQuiz " + quizItem)
     quiz = quiz.addQuizItemToFrontOfTwoGroups(quizGroupHeader,
         quizItem.prompt.value, quizItem.correctResponse.value)
@@ -201,7 +198,7 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     runOnUiThread { showStatus(quizItemText + " added to front of quiz") }
   }
 
-  private[this] def clearResults() {
+  private[this] def clearResults(): Unit = {
     clearStatus()
     searchResultsLayout.removeAllViews()
   }

@@ -31,7 +31,7 @@ class AppDependenciesOverride extends Application {
   /*
    * The Android infrastucture calls this before anything else in the application.
    */
-  override def onCreate() {
+  override def onCreate(): Unit = {
     super.onCreate()
     AppDependenciesOverride.ctx = getApplicationContext()
   }
