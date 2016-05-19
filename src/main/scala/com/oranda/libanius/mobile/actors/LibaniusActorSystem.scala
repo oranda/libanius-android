@@ -51,7 +51,8 @@ object LibaniusActorSystem extends AppDependencyAccess {
 
   def sendQuizItem(qgh: QuizGroupHeader, quizItem: QuizItem): Unit = {
     val newQuizItemMessage = NewQuizItemMessage(qgh, quizItem)
-    actorSystem.appActorEventBus.publish(EventBusMessageEvent(QUIZ_ITEM_CHANNEL, newQuizItemMessage))
+    actorSystem.appActorEventBus.publish(
+        EventBusMessageEvent(QUIZ_ITEM_CHANNEL, newQuizItemMessage))
   }
 
   def speak(text: String, quizGroupKeyType: String): Unit = {

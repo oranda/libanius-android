@@ -41,8 +41,10 @@ case class CollectMessage(override val recipientName: String, listenerRef: Actor
 
 case class NoMessage() extends ActorMessage
 
-class EventBusMessage(val id: String = UUID.randomUUID().toString(),
-    val timestamp: Long = new Date().getTime()) extends ActorMessage
+class EventBusMessage(
+    val id: String = UUID.randomUUID().toString(),
+    val timestamp: Long = new Date().getTime())
+  extends ActorMessage
 
 case class NewQuizItemMessage(header: QuizGroupHeader, quizItem: QuizItem)
   extends EventBusMessage

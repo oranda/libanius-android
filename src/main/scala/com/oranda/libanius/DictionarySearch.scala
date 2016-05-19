@@ -42,8 +42,11 @@ import com.oranda.libanius.mobile.actors.LibaniusActorSystem
 import com.oranda.libanius.model.quizitem.QuizItem
 
 
-class DictionarySearch(quiz: Quiz, searchInput: String,
-    implicit val statusLabel: TextView, searchResultsLayout: LinearLayout,
+class DictionarySearch(
+    quiz: Quiz,
+    searchInput: String,
+    implicit val statusLabel: TextView,
+    searchResultsLayout: LinearLayout,
     widgetFactory: WidgetFactory)
   extends Activity with AppDependencyAccess {
 
@@ -125,8 +128,11 @@ class DictionarySearch(quiz: Quiz, searchInput: String,
     searchResultsLayout.addView(searchResultsRow)
   }
 
-  private[this] def buttonForValue(quizGroupHeader: QuizGroupHeader, keyWord: String,
-      value: String, maxCharsPerValue: Int): Button = {
+  private[this] def buttonForValue(
+      quizGroupHeader: QuizGroupHeader,
+      keyWord: String,
+      value: String,
+      maxCharsPerValue: Int): Button = {
     val btnTag = widgetFactory.newButton
     btnTag.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
     val truncatedValue = value.slice(0, maxCharsPerValue)

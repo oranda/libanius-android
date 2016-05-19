@@ -54,14 +54,17 @@ case class LazyQuiz(quiz: Quiz) extends AppDependencyAccess {
   def addOrReplaceQuizGroup(header: QuizGroupHeader, quizGroup: QuizGroup): LazyQuiz =
     copy(quiz = quiz.addOrReplaceQuizGroup(header, quizGroup))
 
-  def addQuizItemToFrontOfTwoGroups(header: QuizGroupHeader, prompt: String, response: String):
-      LazyQuiz =
+  def addQuizItemToFrontOfTwoGroups(
+      header: QuizGroupHeader,
+      prompt: String,
+      response: String): LazyQuiz =
     copy(quiz = quiz.addQuizItemToFrontOfTwoGroups(QuizItem(prompt, response), header))
 
-  def updateWithUserAnswer(isCorrect: Boolean, currentQuizItem: QuizItemViewWithChoices):
-      LazyQuiz =
-    copy(quiz = quiz.updateWithUserResponse(isCorrect, currentQuizItem.quizGroupHeader,
-        currentQuizItem.quizItem))
+  def updateWithUserAnswer(isCorrect: Boolean, curQuizItem: QuizItemViewWithChoices): LazyQuiz =
+    copy(quiz = quiz.updateWithUserResponse(
+      isCorrect,
+      curQuizItem.quizGroupHeader,
+      curQuizItem.quizItem))
 
   def removeQuizItem(quizItem: QuizItem, header: QuizGroupHeader): (LazyQuiz, Boolean) = {
     val (newQuiz, result) = quiz.removeQuizItem(quizItem, header)

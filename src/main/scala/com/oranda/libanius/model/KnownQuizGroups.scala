@@ -37,8 +37,8 @@ object KnownQuizGroups {
   case object SYNONYMS extends QuizGroupKeyType("Synonyms", Locale.UK)
   case object ENGLISH_DEFINITION extends QuizGroupKeyType("English definition", Locale.UK)
 
-  val quizGroupKeyTypes = Seq(ENGLISH_WORD, GERMAN_WORD, SPANISH_WORD, SAMPLE_SENTENCE,
-      SYNONYMS, ENGLISH_DEFINITION)
+  val quizGroupKeyTypes =
+    Seq(ENGLISH_WORD, GERMAN_WORD, SPANISH_WORD, SAMPLE_SENTENCE, SYNONYMS, ENGLISH_DEFINITION)
 
   def getLocale(quizGroupKeyTypeName: String): Option[Locale] =
     quizGroupKeyTypes.find(_.quizGroupKeyTypeName == quizGroupKeyTypeName).map(_.locale)

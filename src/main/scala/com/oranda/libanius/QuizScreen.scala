@@ -71,7 +71,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     actorSystem.soundPlayer ! SoundPlayer.Load()
 
     val recipientName = getClass.getSimpleName
-    LibaniusActorSystem.actorSystem.mailCentre ! CollectMessage(recipientName,
+    LibaniusActorSystem.actorSystem.mailCentre ! CollectMessage(
+      recipientName,
       actor(new Act {
         become {
           case ObjectMessage(quizReceived: LazyQuiz) =>
@@ -199,8 +200,10 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     startActivity(optionsScreen)
   }
 
-  private[this] def updateUIAfterChoice(currentQuizItem: QuizItemViewWithChoices,
-      choiceButtons: List[Button], clickedButton: Button) {
+  private[this] def updateUIAfterChoice(
+      currentQuizItem: QuizItemViewWithChoices,
+      choiceButtons: List[Button],
+      clickedButton: Button): Unit = {
     updatePrevOptionArea(currentQuizItem)
     val correctResp = currentQuizItem.quizItem.correctResponse.value
     val userWasCorrect = clickedButton.getText == correctResp
@@ -208,12 +211,15 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     Widgets.setColorsForButtons(choiceButtons, findPrevOptionLabels, correctResp, clickedButton)
   }
 
-  private[this] def optionalIsCompleteText(itemComplete: Boolean,
+  private[this] def optionalIsCompleteText(
+      itemComplete: Boolean,
       numCorrectResponsesRequired: Int): String =
     if (itemComplete) " (correct " + numCorrectResponsesRequired + " times -- COMPLETE)" else ""
 
-  private[this] def updateUIAfterText(currentQuizItem: QuizItemViewWithChoices,
-      userWasCorrect: Boolean, quizItemComplete: Boolean) {
+  private[this] def updateUIAfterText(
+      currentQuizItem: QuizItemViewWithChoices,
+      userWasCorrect: Boolean,
+      quizItemComplete: Boolean) {
     updatePrevOptionArea(currentQuizItem)
 
     val feedbackText = new TextView(this)
@@ -250,8 +256,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     (0 until prevOptionArea.getChildCount).map( prevOptionArea.getChildAt(_).
         asInstanceOf[TextView])
 
-  private[this] def constructPrevOptionLabels(currentQuizItem: QuizItemViewWithChoices):
-      List[TextView] = {
+  private[this] def constructPrevOptionLabels(
+      currentQuizItem: QuizItemViewWithChoices): List[TextView] = {
 
     val reverseGroupHeader = currentQuizItem.quizGroupHeader.reverse
     val isReverseLookupPossible = quiz.hasQuizGroup(reverseGroupHeader)
@@ -283,7 +289,9 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     prevOptionLabels.foreach(prevOptionArea.addView(_))
   }
 
-  private[this] def prevOptionsText(responseOption: String, qgHeader: QuizGroupHeader,
+  private[this] def prevOptionsText(
+      responseOption: String,
+      qgHeader: QuizGroupHeader,
       qgReverseHeader: QuizGroupHeader): String = {
 
     val values = quiz.findResponsesFor(responseOption, qgReverseHeader) match {
@@ -293,8 +301,10 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     responseOption + " = " + values.mkString(", ")
   }
 
-  private[this] def processButtonResponse(currentQuizItem: QuizItemViewWithChoices,
-      choiceButtons: List[Button], clickedButton: Button) {
+  private[this] def processButtonResponse(
+      currentQuizItem: QuizItemViewWithChoices,
+      choiceButtons: List[Button],
+      clickedButton: Button): Unit = {
     val userResponse = clickedButton.getText.toString
     updateUIAfterChoice(currentQuizItem, choiceButtons, clickedButton)
     val userWasCorrect = currentQuizItem.quizItem.correctResponse.looselyMatches(userResponse)
@@ -303,16 +313,18 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     pauseThenTestAgain(userWasCorrect, currentQuizItem.isComplete, textLength)
   }
 
-  private[this] def processTextResponse(currentQuizItem: QuizItemViewWithChoices,
-      userResponse: String) {
-    val userWasCorrect = quiz.isCorrect(currentQuizItem.quizGroupHeader,
-        currentQuizItem.prompt.value, userResponse)
+  private[this] def processTextResponse(
+      curQuizItem: QuizItemViewWithChoices,
+      userResponse: String): Unit = {
+    val userWasCorrect = quiz.isCorrect(
+      curQuizItem.quizGroupHeader,
+      curQuizItem.prompt.value,
+      userResponse)
 
     // The UI is updated before the model for responsiveness.
     val quizItemComplete = userWasCorrect &&
-        currentQuizItem.numCorrectResponsesInARow >=
-        currentQuizItem.numCorrectResponsesRequired - 1
-    updateUIAfterText(currentQuizItem, userWasCorrect, quizItemComplete)
+        curQuizItem.numCorrectResponsesInARow >= curQuizItem.numCorrectResponsesRequired - 1
+    updateUIAfterText(curQuizItem, userWasCorrect, quizItemComplete)
     updateModel(userResponse, userWasCorrect)
 
     val textLength = userResponse.length
@@ -325,7 +337,9 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
         "updating quiz with the user answer")
   }
 
-  private[this] def pauseThenTestAgain(userWasCorrect: Boolean, quizItemComplete: Boolean,
+  private[this] def pauseThenTestAgain(
+      userWasCorrect: Boolean,
+      quizItemComplete: Boolean,
       textLength: Int) {
     val complexityMultiplier = if (textLength < 12) 1 else 1 + (textLength / 5)
     val delayMillis = complexityMultiplier *

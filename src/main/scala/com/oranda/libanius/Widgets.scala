@@ -43,7 +43,9 @@ object Widgets extends AppDependencyAccess {
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp,
             androidContext.getResources.getDisplayMetrics).toInt
 
-      val params = new LinearLayout.LayoutParams( LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT );
+      val params = new LinearLayout.LayoutParams(
+        LayoutParams.MATCH_PARENT,
+        LayoutParams.WRAP_CONTENT)
       params.setMargins(0, 0, 0, calcPixelsForDp(25))
       choiceButton.setLayoutParams(params)
 
@@ -81,8 +83,11 @@ object Widgets extends AppDependencyAccess {
     values.map(constructPrevLabel(androidContext, _))
 
 
-  protected[libanius] def setColorsForButtons(choiceButtons: List[Button],
-      prevOptionLabels: Seq[TextView], correctResponse: String, clickedButton: Button) {
+  protected[libanius] def setColorsForButtons(
+      choiceButtons: List[Button],
+      prevOptionLabels: Seq[TextView],
+      correctResponse: String,
+      clickedButton: Button): Unit = {
 
     choiceButtons.find(_.getText == correctResponse).foreach { correctButton =>
       choiceButtons.foreach { button =>
@@ -92,27 +97,30 @@ object Widgets extends AppDependencyAccess {
     setColorsForPrevOptions(prevOptionLabels, correctResponse)
   }
 
-  protected[libanius] def setButtonColorOnResponse(optionButton: Button,
-      CORRECT_BUTTON: Button, CLICKED_BUTTON: Button) {
-
+  protected[libanius] def setButtonColorOnResponse(
+      optionButton: Button,
+      CORRECT_BUTTON: Button,
+      CLICKED_BUTTON: Button): Unit =
     optionButton match {
       case CORRECT_BUTTON => optionButton.setBackgroundColor(Color.GREEN)
       case CLICKED_BUTTON => optionButton.setBackgroundColor(Color.RED)
       case _ =>
     }
-  }
 
-  protected[libanius] def setLabelColorOnResponse(optionButton: Button,
-      prevOptionLabel: TextView, CORRECT_BUTTON: Button, CLICKED_BUTTON: Button) {
 
+  protected[libanius] def setLabelColorOnResponse(
+      optionButton: Button,
+      prevOptionLabel: TextView,
+      CORRECT_BUTTON: Button,
+      CLICKED_BUTTON: Button): Unit =
     optionButton match {
       case CORRECT_BUTTON => prevOptionLabel.setTextColor(Color.GREEN)
       case CLICKED_BUTTON => prevOptionLabel.setTextColor(Color.RED)
       case _ =>
     }
-  }
 
-  protected[libanius] def setColorsForPrevOptions(prevOptionLabels: Seq[TextView],
+  protected[libanius] def setColorsForPrevOptions(
+      prevOptionLabels: Seq[TextView],
       correctResponse: String): Unit = {
     val correctLabel = prevOptionLabels.find(_.getText.toString.startsWith(correctResponse + " ="))
     correctLabel.foreach(_.setTextColor(Color.GREEN))

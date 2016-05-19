@@ -23,10 +23,9 @@ import com.oranda.libanius.dependencies.Logger
 
 class LoggerAndroid extends Logger {
 
-  override def logImpl(message: String, module: String = "Libanius", t: Option[Throwable] = None) {
+  override def logImpl(message: String, module: String = "Libanius", t: Option[Throwable] = None): Unit =
     t match {
       case Some(t) => Log.d(module, message, t)
       case _ => Log.d(module, message)
     }
-  }
 }

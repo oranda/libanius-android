@@ -129,16 +129,16 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     }
 
     def addCheckBoxToLayout(checkBox: CheckBox) = {
-      val params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,
-          ViewGroup.LayoutParams.WRAP_CONTENT)
+      val params = new LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.FILL_PARENT,
+        ViewGroup.LayoutParams.WRAP_CONTENT)
       params.leftMargin = 20
       params.bottomMargin = 25
       quizGroupsLayout.addView(checkBox, params)
     }
 
-    val availableQuizGroups = dataStore.findAvailableQuizGroups
-    checkBoxes = availableQuizGroups.map(qgHeader =>
-        (makeQuizGroupCheckBox(qgHeader), qgHeader)).toMap
+    val availableQgs = dataStore.findAvailableQuizGroups
+    checkBoxes = availableQgs.map(qgHeader => (makeQuizGroupCheckBox(qgHeader), qgHeader)).toMap
 
     val maxCheckBoxes = 5
     checkBoxes.keys.slice(0, maxCheckBoxes).foreach(addCheckBoxToLayout(_))
@@ -150,8 +150,10 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     checkBoxes.filter(_._1.isChecked).map(_._2).toSet
 
   def alert(title: String, message: String): Unit = {
-    new AlertDialog.Builder(OptionsScreen.this).setTitle(title).setMessage(message).
-        setPositiveButton("OK", null).show()
+    new AlertDialog.Builder(OptionsScreen.this).
+      setTitle(title).
+      setMessage(message).
+      setPositiveButton("OK", null).show()
   }
 
   def gotoQuiz(v: View): Unit =
@@ -172,7 +174,9 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
 
   def prepareSearchUi(): Unit =
     searchInputBox.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-      override def onEditorAction(searchInputBox: TextView, actionId: Int,
+      override def onEditorAction(
+          searchInputBox: TextView,
+          actionId: Int,
           event: KeyEvent): Boolean = {
         if (actionId == EditorInfo.IME_ACTION_DONE || event.getAction == KeyEvent.ACTION_DOWN)
           findAndShowResultsAsync()
@@ -185,15 +189,21 @@ class OptionsScreen extends Activity with TypedActivity with AppDependencyAccess
     Widgets.closeOnscreenKeyboard(this, searchInputBox.getWindowToken)
     getQuizReady()
     val searchInput = searchInputBox.getText.toString
-    val dictionarySearch = new DictionarySearch(quiz, searchInput, statusLabel,
-        searchResultsLayout, new WidgetFactory(this))
+    val dictionarySearch = new DictionarySearch(
+      quiz,
+      searchInput,
+      statusLabel,
+      searchResultsLayout,
+      new WidgetFactory(this))
     dictionarySearch.findAndShowResultsAsync()
   }
 
   private[this] def addItemToQuiz(quizGroupHeader: QuizGroupHeader, quizItem: QuizItem): Unit = {
     l.log("addItemToQuiz " + quizItem)
-    quiz = quiz.addQuizItemToFrontOfTwoGroups(quizGroupHeader,
-        quizItem.prompt.value, quizItem.correctResponse.value)
+    quiz = quiz.addQuizItemToFrontOfTwoGroups(
+      quizGroupHeader,
+      quizItem.prompt.value,
+      quizItem.correctResponse.value)
     val quizItemText = quizItem.prompt.value + " - " + quizItem.correctResponse.value
     runOnUiThread { showStatus(quizItemText + " added to front of quiz") }
   }
