@@ -64,7 +64,7 @@ object SoundPlayer {
   case class Load()
   case class Play(soundSample: SoundSampleName)
 
-  abstract class SoundSampleName
+  sealed trait SoundSampleName
   case object CORRECT extends SoundSampleName
   case object INCORRECT extends SoundSampleName
 
