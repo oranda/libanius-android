@@ -76,8 +76,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
       actor(new Act {
         become {
           case ObjectMessage(quizReceived: LazyQuiz) =>
-            l.log("received quiz with numItems " + quizReceived.numQuizItems +
-                " and setting it in QuizScreen")
+            val numQuizItems = quizReceived.numQuizItems
+            l.log(s"received quiz with numItems $numQuizItems and setting it in QuizScreen")
             quiz = quizReceived
             runGuiOnUiThread()
           case NoMessage() =>
@@ -194,8 +194,8 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
   def gotoOptions(v: View): Unit = {
     LibaniusActorSystem.sendQuizTo("OptionsScreen", quiz)
-    l.log("in QuizScreen, sending quiz with active group headers " +
-        quiz.quiz.activeQuizGroupHeaders)
+    val activeQuizGroupHeaders = quiz.quiz.activeQuizGroupHeaders
+    l.log(s"in QuizScreen, sending quiz with active group headers $activeQuizGroupHeaders")
     val optionsScreen = new Intent(getApplicationContext, classOf[OptionsScreen])
     startActivity(optionsScreen)
   }
@@ -270,15 +270,16 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
     else Nil
   }
 
-  private[this] def addPrevQuestionLabel(currentQuizItem: QuizItemViewWithChoices): Unit = {
-    val prevQuestionText = "PREV: " + questionLabel.getText +
-        optionalIsCompleteText(currentQuizItem.isComplete,
-        currentQuizItem.numCorrectResponsesRequired)
+  private[this] def addPrevQuestionLabel(curQuizItem: QuizItemViewWithChoices): Unit = {
+    val isCompleteText =
+      optionalIsCompleteText(curQuizItem.isComplete, curQuizItem.numCorrectResponsesRequired)
+    val prevQuestionText = s"PREV: ${questionLabel.getText} $isCompleteText"
+
     val prevQuestionLabel = Widgets.constructPrevLabel(this, prevQuestionText)
     prevQuestionArea.removeAllViews()
     prevQuestionArea.addView(prevQuestionLabel)
     // Add spacer labels in order to align the prevQuestionLabel at the top
-    val numSpacers = currentQuizItem.allChoices.size - 1
+    val numSpacers = curQuizItem.allChoices.size - 1
     List.fill(numSpacers)(" ").map(Widgets.constructPrevLabel(this, _)).foreach(
         prevQuestionArea.addView(_))
   }
@@ -323,7 +324,7 @@ class QuizScreen extends Activity with TypedActivity with Timestamps with AppDep
 
     // The UI is updated before the model for responsiveness.
     val quizItemComplete = userWasCorrect &&
-        curQuizItem.numCorrectResponsesInARow >= curQuizItem.numCorrectResponsesRequired - 1
+      curQuizItem.numCorrectResponsesInARow >= curQuizItem.numCorrectResponsesRequired - 1
     updateUIAfterText(curQuizItem, userWasCorrect, quizItemComplete)
     updateModel(userResponse, userWasCorrect)
 
