@@ -86,10 +86,8 @@ class DictionarySearch(
     runOnUiThread {
       results match {
         case Success(results) =>
-          if (results.isEmpty)
-            setStatus("No results found")
-          else
-            showSearchResults(results.slice(0, maxResults))
+          if (results.isEmpty) setStatus("No results found")
+          else showSearchResults(results.slice(0, maxResults))
         case Failure(ex) =>
           statusMessageForException(ex)
       }
