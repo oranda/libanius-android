@@ -1,3 +1,8 @@
+== 0.984
+
+  * Improved code formatting.
+
+
 == 0.98 April 5 2015
 
   * Implemented Text-to-Speech with the Akka actor Voice.

@@ -31,7 +31,7 @@ case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
 
   def readFile(fileName: String): Option[String] =
     if (ctx.getFileStreamPath(fileName).exists)
-      Some(readInputStream(fileToInputStream(fileName)))
+      Option(readInputStream(fileToInputStream(fileName)))
     else {
       l.logError("File not found: " + fileName)
       None
@@ -44,7 +44,7 @@ case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
   def fileToInputStream(fileName: String) = ctx.openFileInput(fileName)
 
   def readResource(resName: String): Option[String] =
-    Some(readInputStream(resourceToInputStream(resName)))
+    Option(readInputStream(resourceToInputStream(resName)))
 
   def save(fileName: String, fileNameBackup: String, strToSave: String): Unit = {
     val file = new File(fileName)
