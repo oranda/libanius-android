@@ -7,8 +7,8 @@ object General {
 
   val settings = Defaults.defaultSettings ++ Seq (
     name := "Libanius",
-    version := "0.980",
-    versionCode := 980,
+    version := "0.984",
+    versionCode := 984,
     scalaVersion := "2.10.2",
     platformName in Android := "android-14",
     scalacOptions += "-deprecation",
