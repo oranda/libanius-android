@@ -1,6 +1,6 @@
 /*
  * Libanius-Android
- * Copyright (C) 2012-2015 James McCabe <james@oranda.com>
+ * Copyright (C) 2012-2016 James McCabe <james@oranda.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -56,7 +56,7 @@ case class AndroidIO(ctx: Context) extends PlatformIO with AppDependencyAccess {
 
   def writeToFile(fileName: String, data: String) = {
     val fOut: FileOutputStream = ctx.openFileOutput(fileName, Context.MODE_PRIVATE)
-    fOut.write(data.getBytes())  
+    fOut.write(data.getBytes())
     fOut.close()
   }
 

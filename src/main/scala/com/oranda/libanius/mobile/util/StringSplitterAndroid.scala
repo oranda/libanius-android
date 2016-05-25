@@ -1,6 +1,6 @@
 /*
  * Libanius-Android
- * Copyright (C) 2012-2015 James McCabe <james@oranda.com>
+ * Copyright (C) 2012-2016 James McCabe <james@oranda.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,12 +23,12 @@ import java.lang.Character
 import com.oranda.libanius.util.StringSplitter
 
 class StringSplitterAndroid(_char: Character) extends StringSplitter(_char) {
-  
+
   val splitter = new TextUtils.SimpleStringSplitter(_char)
-  
+
   override def setString(str: String): Unit =
     splitter.setString(str)
-  
+
   override def hasNext: Boolean = splitter.hasNext
   override def next: String = splitter.next
 }

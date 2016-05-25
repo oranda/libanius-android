@@ -1,6 +1,6 @@
 /*
  * Libanius-Android
- * Copyright (C) 2012-2015 James McCabe <james@oranda.com>
+ * Copyright (C) 2012-2016 James McCabe <james@oranda.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -25,17 +25,17 @@ package com.oranda.libanius.mobile
 trait Timestamps {
 
   private[this] var timestampsLastCorrectAnswers = List[Long]()
-  
+
   def updateTimestamps(thereJustOccurredACorrectAnswer: Boolean): Unit =
     if (thereJustOccurredACorrectAnswer) {
       val currentTime = System.currentTimeMillis
       timestampsLastCorrectAnswers ::= currentTime
-      /* 
-       * Purge timestamps older than one minute. This leaves the length of the 
+      /*
+       * Purge timestamps older than one minute. This leaves the length of the
        * list as a measure of the number of correct answers per minute.
        */
       timestampsLastCorrectAnswers = timestampsLastCorrectAnswers.filter(_ > currentTime - 60000)
     }
-  
+
   def answerSpeed = timestampsLastCorrectAnswers.size
 }
